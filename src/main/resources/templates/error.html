@@ -2,23 +2,11 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <title>Error</title>
-    <!-- Use new fragment syntax -->
-    <div th:replace="~{fragments/head :: head}"></div>
 </head>
 <body>
-<!-- Use new fragment syntax -->
-<div th:replace="~{fragments/header :: header}"></div>
-
-<main class="container my-4">
-    <div class="alert alert-danger">
-        <h2>Error Page</h2>
-        <p th:text="${errorMessage} ?: 'An unexpected error occurred'"></p>
-    </div>
-
-    <a th:href="@{/}" class="btn btn-primary">Return to Home</a>
-</main>
-
-<!-- Use new fragment syntax -->
-<div th:replace="~{fragments/footer :: footer}"></div>
+<h1>An Error Occurred</h1>
+<div th:if="${errorMessage}" class="alert alert-danger">
+    <span th:text="${errorMessage}"></span>
+</div>
 </body>
 </html>

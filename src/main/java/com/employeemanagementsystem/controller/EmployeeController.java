@@ -9,6 +9,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -21,7 +22,17 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class EmployeeController {
 
     private final EmployeeService employeeService;
+    @Controller
+    public class HomeController {
 
+        @GetMapping("/")
+        public String home(Model model, Authentication authentication) {
+            if (authentication != null && authentication.isAuthenticated()) {
+                model.addAttribute("username", authentication.getName());
+            }
+            return "home";
+        }
+    }
     @GetMapping
     public String listEmployees(
             @RequestParam(required = false) String keyword,

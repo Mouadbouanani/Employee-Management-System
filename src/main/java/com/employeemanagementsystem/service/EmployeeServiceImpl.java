@@ -44,6 +44,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         return employeeRepository.findByEmail(email);
     }
 
+    @Override
     @Transactional
     public Employee saveEmployee(Employee employee) {
         // Encode password if it's not empty (new or changed password)
