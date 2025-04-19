@@ -62,5 +62,8 @@ public class DataInitializer {
         admin.setDepartment("IT");
         admin.setSalary(new BigDecimal("90000.00"));
         admin.addRole(adminRole);
+
+
+
     }
     }
