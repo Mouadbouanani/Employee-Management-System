@@ -44,16 +44,16 @@ public class EmployeeServiceImpl implements EmployeeService {
         return employeeRepository.findByEmail(email);
     }
 
-    @Override
     @Transactional
     public Employee saveEmployee(Employee employee) {
-        // If password is provided and it's a new entry or password changed
+        // Encode password if it's not empty (new or changed password)
         if (employee.getPassword() != null && !employee.getPassword().isEmpty()) {
             employee.setPassword(passwordEncoder.encode(employee.getPassword()));
         } else if (employee.getId() != null) {
-            // If updating and password field is empty, keep the existing password
-            employeeRepository.findById(employee.getId())
-                    .ifPresent(existingEmployee -> employee.setPassword(existingEmployee.getPassword()));
+            // For updates, keep existing password if none provided
+            Employee existing = employeeRepository.findById(employee.getId())
+                    .orElseThrow(() -> new RuntimeException("Employee not found"));
+            employee.setPassword(existing.getPassword());
         }
 
         return employeeRepository.save(employee);

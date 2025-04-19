@@ -1,10 +1,55 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<div th:fragment="sidebar" class="sidebar" xmlns:sec="http://www.w3.org/1999/xhtml">
+    <div class="sidebar-heading">Navigation</div>
+    <ul class="nav flex-column">
+        <li class="nav-item">
+            <a class="nav-link" th:href="@{/}">
+                <i class="fas fa-fw fa-home"></i>
+                Dashboard
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" th:href="@{/employees}" th:classappend="${#httpServletRequest.requestURI.equals('/employees')} ? 'active'">
+                <i class="fas fa-fw fa-users"></i>
+                Employees
+            </a>
+        </li>
+        <li class="nav-item" sec:authorize="hasAnyRole('ADMIN', 'MANAGER')">
+            <a class="nav-link" th:href="@{/employees/add}" th:classappend="${#httpServletRequest.requestURI.equals('/employees/add')} ? 'active'">
+                <i class="fas fa-fw fa-user-plus"></i>
+                Add Employee
+            </a>
+        </li>
+    </ul>
 
-</body>
-</html>
+    <div class="sidebar-heading">Administration</div>
+    <ul class="nav flex-column" sec:authorize="hasRole('ADMIN')">
+        <li class="nav-item">
+            <a class="nav-link" href="#">
+                <i class="fas fa-fw fa-cog"></i>
+                Settings
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="#">
+                <i class="fas fa-fw fa-user-shield"></i>
+                Roles & Permissions
+            </a>
+        </li>
+    </ul>
+
+    <div class="sidebar-heading">Reports</div>
+    <ul class="nav flex-column">
+        <li class="nav-item">
+            <a class="nav-link" href="#">
+                <i class="fas fa-fw fa-chart-pie"></i>
+                Analytics
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="#">
+                <i class="fas fa-fw fa-file-export"></i>
+                Export Data
+            </a>
+        </li>
+    </ul>
+</div>

@@ -1,10 +1,107 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="fragments/head :: head">
+    <title>Employee Details</title>
 </head>
 <body>
+<header th:replace="fragments/header :: header"></header>
 
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="fas fa-user me-2"></i>Employee Details
+        </h2>
+        <a th:href="@{/employees}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to List
+        </a>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Employee Information</h6>
+            <div class="btn-group" role="group">
+                <a sec:authorize="hasAnyRole('ADMIN', 'MANAGER')"
+                   th:href="@{/employees/edit/{id}(id=${employee.id})}"
+                   class="btn btn-sm btn-warning">
+                    <i class="fas fa-edit me-1"></i> Edit
+                </a>
+                <a sec:authorize="hasRole('ADMIN')"
+                   th:href="@{/employees/delete/{id}(id=${employee.id})}"
+                   class="btn btn-sm btn-danger"
+                   onclick="return confirm('Are you sure you want to delete this employee?');">
+                    <i class="fas fa-trash me-1"></i> Delete
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4 text-center">
+                    <div class="mb-3">
+                        <div class="avatar-circle bg-primary text-white mx-auto mb-3">
+                            <span th:text="${employee.firstName.charAt(0) + employee.lastName.charAt(0)}"></span>
+                        </div>
+                        <h4 th:text="${employee.firstName + ' ' + employee.lastName}"></h4>
+                        <p class="text-muted" th:text="${employee.position}"></p>
+                    </div>
+                    <div class="list-group">
+                        <div class="list-group-item">
+                            <i class="fas fa-envelope me-2"></i> <span th:text="${employee.email}"></span>
+                        </div>
+                        <div class="list-group-item">
+                            <i class="fas fa-phone me-2"></i> <span th:text="${employee.phoneNumber}"></span>
+                        </div>
+                        <div class="list-group-item">
+                            <i class="fas fa-building me-2"></i> <span th:text="${employee.department}"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-header bg-light">
+                                    <h6 class="m-0">Basic Information</h6>
+                                </div>
+                                <div class="card-body">
+                                    <dl class="row">
+                                        <dt class="col-sm-4">Employee ID</dt>
+                                        <dd class="col-sm-8" th:text="${employee.id}"></dd>
+
+                                        <dt class="col-sm-4">Hire Date</dt>
+                                        <dd class="col-sm-8" th:text="${#temporals.format(employee.hireDate, 'MMMM dd, yyyy')}"></dd>
+
+                                        <dt class="col-sm-4">Salary</dt>
+                                        <dd class="col-sm-8" th:text="${'$' + #numbers.formatDecimal(employee.salary, 1, 2, 'COMMA')}"></dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-header bg-light">
+                                    <h6 class="m-0">Roles</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div th:if="${!employee.roles.empty}">
+                                            <span th:each="role,iterStat : ${employee.roles}"
+                                                  class="badge bg-primary me-1"
+                                                  th:text="${role.name}"></span>
+                                    </div>
+                                    <div th:if="${employee.roles.empty}">
+                                        <span class="text-muted">No roles assigned</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer th:replace="fragments/footer :: footer"></footer>
+
+<!-- Bootstrap JS Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

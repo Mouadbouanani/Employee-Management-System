@@ -1,10 +1,88 @@
 <!DOCTYPE html>
-<html lang="en">
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>Add Employee</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}" />
 </head>
 <body>
+<div class="container">
+    <h1>Add New Employee</h1>
 
+    <form th:action="@{/employees/add}" th:object="${employee}" method="post">
+        <div class="form-group">
+            <label for="firstName">First Name:</label>
+            <input type="text" id="firstName" th:field="*{firstName}" required />
+            <span class="error" th:if="${#fields.hasErrors('firstName')}" th:errors="*{firstName}"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="lastName">Last Name:</label>
+            <input type="text" id="lastName" th:field="*{lastName}" required />
+            <span class="error" th:if="${#fields.hasErrors('lastName')}" th:errors="*{lastName}"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" th:field="*{email}" required />
+            <span class="error" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" th:field="*{password}" />
+            <span class="error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="phoneNumber">Phone Number:</label>
+            <input type="text" id="phoneNumber" th:field="*{phoneNumber}" required />
+            <span class="error" th:if="${#fields.hasErrors('phoneNumber')}" th:errors="*{phoneNumber}"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="hireDate">Hire Date:</label>
+            <input type="date" id="hireDate" th:field="*{hireDate}" required />
+            <span class="error" th:if="${#fields.hasErrors('hireDate')}" th:errors="*{hireDate}"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="position">Position:</label>
+            <input type="text" id="position" th:field="*{position}" required />
+            <span class="error" th:if="${#fields.hasErrors('position')}" th:errors="*{position}"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="department">Department:</label>
+            <input type="text" id="department" th:field="*{department}" required />
+            <span class="error" th:if="${#fields.hasErrors('department')}" th:errors="*{department}"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="salary">Salary:</label>
+            <input type="number" id="salary" th:field="*{salary}" step="0.01" required />
+            <span class="error" th:if="${#fields.hasErrors('salary')}" th:errors="*{salary}"></span>
+        </div>
+
+        <div class="form-group">
+            <label>Roles:</label>
+            <div>
+                <input type="checkbox" id="roleAdmin" name="roles" value="ADMIN" />
+                <label for="roleAdmin">Admin</label>
+            </div>
+            <div>
+                <input type="checkbox" id="roleManager" name="roles" value="MANAGER" />
+                <label for="roleManager">Manager</label>
+            </div>
+            <div>
+                <input type="checkbox" id="roleUser" name="roles" value="USER" checked />
+                <label for="roleUser">User</label>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save Employee</button>
+        <a th:href="@{/employees}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
 </body>
 </html>

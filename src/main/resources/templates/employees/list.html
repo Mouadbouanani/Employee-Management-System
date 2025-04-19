@@ -1,10 +1,148 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="fragments/head :: head">
+    <title>Employee List</title>
 </head>
 <body>
+<header th:replace="fragments/header :: header"></header>
 
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="fas fa-users me-2"></i>Employee List
+        </h2>
+        <a sec:authorize="hasAnyRole('ADMIN', 'MANAGER')" th:href="@{/employees/add}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> Add Employee
+        </a>
+    </div>
+
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+        <span th:text="${successMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <span th:text="${errorMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Employee Records</h6>
+            <form class="d-flex" th:action="@{/employees}" method="get">
+                <div class="input-group">
+                    <input type="text" class="form-control" placeholder="Search..." name="keyword" th:value="${keyword}">
+                    <button class="btn btn-outline-secondary" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-light">
+                    <tr>
+                        <th>
+                            <a th:href="@{/employees(size=${employeePage.size}, page=${currentPage}, sortField=id, sortDir=${reverseSortDir})}">
+                                ID <i th:classappend="${sortField == 'id'} ? 'fas fa-sort-${sortDir}'"></i>
+                            </a>
+                        </th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Department</th>
+                        <th>Position</th>
+                        <th>
+                            <a th:href="@{/employees(size=${employeePage.size}, page=${currentPage}, sortField=hireDate, sortDir=${reverseSortDir})}">
+                                Hire Date <i th:classappend="${sortField == 'hireDate'} ? 'fas fa-sort-${sortDir}'"></i>
+                            </a>
+                        </th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="employee : ${employeePage.content}">
+                        <td th:text="${employee.id}"></td>
+                        <td>
+                            <a th:href="@{/employees/{id}(id=${employee.id})}" th:text="${employee.firstName + ' ' + employee.lastName}"></a>
+                        </td>
+                        <td th:text="${employee.email}"></td>
+                        <td th:text="${employee.department}"></td>
+                        <td th:text="${employee.position}"></td>
+                        <td th:text="${#temporals.format(employee.hireDate, 'yyyy-MM-dd')}"></td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a th:href="@{/employees/{id}(id=${employee.id})}" class="btn btn-sm btn-info">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a sec:authorize="hasAnyRole('ADMIN', 'MANAGER')"
+                                   th:href="@{/employees/edit/{id}(id=${employee.id})}"
+                                   class="btn btn-sm btn-warning">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a sec:authorize="hasRole('ADMIN')"
+                                   th:href="@{/employees/delete/{id}(id=${employee.id})}"
+                                   class="btn btn-sm btn-danger"
+                                   onclick="return confirm('Are you sure you want to delete this employee?');">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr th:if="${employeePage.content.empty}">
+                        <td colspan="7" class="text-center">No employees found</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <div class="dataTables_info" role="status">
+                        Showing <span th:text="${employeePage.number * employeePage.size + 1}"></span> to
+                        <span th:text="${(employeePage.number * employeePage.size) + employeePage.numberOfElements}"></span> of
+                        <span th:text="${employeePage.totalElements}"></span> entries
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <nav aria-label="Page navigation" class="float-end">
+                        <ul class="pagination">
+                            <li class="page-item" th:classappend="${employeePage.first} ? 'disabled'">
+                                <a class="page-link" th:href="@{/employees(size=${employeePage.size}, page=0, sortField=${sortField}, sortDir=${sortDir}, keyword=${keyword})}">
+                                    First
+                                </a>
+                            </li>
+                            <li class="page-item" th:classappend="${employeePage.first} ? 'disabled'">
+                                <a class="page-link" th:href="@{/employees(size=${employeePage.size}, page=${employeePage.number - 1}, sortField=${sortField}, sortDir=${sortDir}, keyword=${keyword})}">
+                                    Previous
+                                </a>
+                            </li>
+                            <li th:each="i : ${#numbers.sequence(1, employeePage.totalPages)}"
+                                class="page-item" th:classappend="${i - 1 == employeePage.number} ? 'active'">
+                                <a class="page-link"
+                                   th:href="@{/employees(size=${employeePage.size}, page=${i - 1}, sortField=${sortField}, sortDir=${sortDir}, keyword=${keyword})}"
+                                   th:text="${i}"></a>
+                            </li>
+                            <li class="page-item" th:classappend="${employeePage.last} ? 'disabled'">
+                                <a class="page-link" th:href="@{/employees(size=${employeePage.size}, page=${employeePage.number + 1}, sortField=${sortField}, sortDir=${sortDir}, keyword=${keyword})}">
+                                    Next
+                                </a>
+                            </li>
+                            <li class="page-item" th:classappend="${employeePage.last} ? 'disabled'">
+                                <a class="page-link" th:href="@{/employees(size=${employeePage.size}, page=${employeePage.totalPages - 1}, sortField=${sortField}, sortDir=${sortDir}, keyword=${keyword})}">
+                                    Last
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer th:replace="fragments/footer :: footer"></footer>
+
+<!-- Bootstrap JS Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
