@@ -20,14 +20,14 @@ pipeline {
         // Stage 2: Build
         stage('Build') {
             steps {
-                sh './gradlew build'  // For Java/Spring Boot
+                sh 'mvn clean package'  // For Java/Spring Boot
             }
         }
 
         // Stage 3: Test
         stage('Test') {
             steps {
-                sh './gradlew test'
+                sh 'mvn test'
                 junit 'build/test-results/test/**/*.xml'  // Archive test results
             }
         }
