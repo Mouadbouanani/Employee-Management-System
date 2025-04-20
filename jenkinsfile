@@ -1,45 +1,107 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKER_IMAGE = "employee-app"
+        KUBE_NAMESPACE = "default"  // Change if using a specific Kubernetes namespace
+        // Escape the branch name with double quotes
+        BRANCH_NAME = "mouad'sBranch"
+    }
+
     stages {
+        // Stage 1: Checkout Code
         stage('Checkout') {
             steps {
-                git 'https://github.com/Mouadbouanani/Employee-Management-System.git'
+                git url: 'https://github.com/Mouadbouanani/Employee-Management-System.git',
+                     branch: "${BRANCH_NAME}"  // Use the environment variable
             }
         }
+
+        // Stage 2: Build
         stage('Build') {
             steps {
-                sh './gradlew build' // ou mvn clean install
+                sh './gradlew build'  // For Java/Spring Boot
             }
         }
+
+        // Stage 3: Test
         stage('Test') {
             steps {
-                sh './gradlew test' // ou mvn test
+                sh './gradlew test'
+                junit 'build/test-results/test/**/*.xml'  // Archive test results
             }
         }
+
+        // Stage 4: Package
         stage('Package') {
             steps {
-                sh './gradlew assemble' // ou mvn package
+                sh './gradlew assemble'
+                archiveArtifacts artifacts: 'build/libs/*.jar', fingerprint: true
             }
         }
-        stage('Publish to Nexus') {
+
+        // Stage 5: Docker Build
+        stage('Docker Build') {
             steps {
-                // Script pour push vers Nexus (nécessite config auth)
-                echo 'Upload to Nexus (placeholder)'
+                script {
+                    // Build with both BUILD_ID and branch name as tags
+                    docker.build("${DOCKER_IMAGE}:${env.BUILD_ID}-${BRANCH_NAME.replaceAll("'", "")}")
+                }
             }
         }
-        stage('Deploy (optionnel)') {
+
+        // Stage 6: Docker Push (Optional)
+        stage('Docker Push') {
+            when {
+                expression { env.BRANCH_NAME == "mouad'sBranch" }  // Only push from this branch
+            }
             steps {
-                echo 'Deploying using Docker/Kubernetes (optional)'
+                script {
+                    docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
+                        docker.image("${DOCKER_IMAGE}:${env.BUILD_ID}-${BRANCH_NAME.replaceAll("'", "")}").push()
+                        docker.image("${DOCKER_IMAGE}:latest").push()  // Optional: push as latest
+                    }
+                }
+            }
+        }
+
+        // Stage 7: Deploy to Kubernetes
+        stage('Kubernetes Deploy') {
+            when {
+                expression { env.BRANCH_NAME == "mouad'sBranch" }  // Only deploy from this branch
+            }
+            steps {
+                script {
+                    // Update deployment.yaml with the new image tag
+                    def imageTag = "${env.BUILD_ID}-${BRANCH_NAME.replaceAll("'", "")}"
+                    sh """
+                        sed -i 's|image:.*|image: ${DOCKER_IMAGE}:${imageTag}|g' k8s/deployment.yaml
+                        kubectl apply -f k8s/deployment.yaml -n ${KUBE_NAMESPACE}
+                        kubectl rollout status deployment/employee-app -n ${KUBE_NAMESPACE}
+                    """
+                }
             }
         }
     }
 
     post {
+        always {
+            cleanWs()  // Clean workspace after build
+            script {
+                // Send build status to Slack/Teams (optional)
+                echo "Build finished: ${currentBuild.currentResult}"
+            }
+        }
         failure {
             mail to: 'mouadbouanani1@gmail.com',
-                 subject: "Échec du pipeline CI/CD",
-                 body: "Erreur dans le build du projet ! Vérifiez Jenkins."
+                 subject: "Pipeline Failed - Employee Management System (Branch: ${BRANCH_NAME})",
+                 body: """
+                 Build #${env.BUILD_NUMBER} failed in branch ${BRANCH_NAME}.
+                 Check logs: ${env.BUILD_URL}
+                 """
+        }
+        success {
+            echo "Pipeline succeeded! App deployed from branch ${BRANCH_NAME}."
         }
     }
 }
