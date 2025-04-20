@@ -22,17 +22,6 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class EmployeeController {
 
     private final EmployeeService employeeService;
-    @Controller
-    public class HomeController {
-
-        @GetMapping("/")
-        public String home(Model model, Authentication authentication) {
-            if (authentication != null && authentication.isAuthenticated()) {
-                model.addAttribute("username", authentication.getName());
-            }
-            return "home";
-        }
-    }
     @GetMapping
     public String listEmployees(
             @RequestParam(required = false) String keyword,
