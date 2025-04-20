@@ -4,7 +4,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/votre-utilisateur/votre-projet.git'
+                git 'https://github.com/Mouadbouanani/Employee-Management-System.git'
             }
         }
         stage('Build') {
@@ -37,7 +37,7 @@ pipeline {
 
     post {
         failure {
-            mail to: 'admin@ecole-esi.ma',
+            mail to: 'mouadbouanani1@gmail.com',
                  subject: "Échec du pipeline CI/CD",
                  body: "Erreur dans le build du projet ! Vérifiez Jenkins."
         }
