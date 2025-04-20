@@ -15,6 +15,8 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.Optional;
+
 @Controller
 @RequestMapping("/employees")
 @RequiredArgsConstructor
@@ -119,20 +121,15 @@ public class EmployeeController {
             return "employees/edit";
         }
 
-        // Check if email exists but belongs to a different employee
-        employeeService.getEmployeeByEmail(employee.getEmail())
-                .ifPresent(existingEmployee -> {
-                    if (!existingEmployee.getId().equals(id)) {
-                        result.rejectValue("email", "error.employee", "This email is already in use");
-                    }
-                });
-
-        if (result.hasErrors()) {
-            employee.setId(id);
+        // Vérification conflit email
+        Optional<Employee> existingEmployee = employeeService.getEmployeeByEmail(employee.getEmail());
+        if (existingEmployee.isPresent() && !existingEmployee.get().getId().equals(id)) {
+            result.rejectValue("email", "error.employee", "This email is already in use");
+            employee.setId(id); // Important: conserver l'ID original
             return "employees/edit";
         }
 
-        employee.setId(id);  // Ensure the ID is set correctly
+        employee.setId(id);
         employeeService.saveEmployee(employee);
         redirectAttributes.addFlashAttribute("successMessage", "Employee updated successfully");
         return "redirect:/employees";

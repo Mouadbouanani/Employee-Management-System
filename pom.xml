@@ -2,6 +2,14 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
+    <repositories>
+        <repository>
+            <id>sonatype</id>
+            <url>https://oss.sonatype.org/content/repositories/releases/</url>
+        </repository>
+    </repositories>
+
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
@@ -16,6 +24,8 @@
 
     <properties>
         <java.version>17</java.version>
+        <sonar.host.url>http://localhost:9000</sonar.host.url>
+        <sonar.login>squ_2e2b09bcc8bd0651486d821a72ba8cc2a468becb</sonar.login>
     </properties>
 
     <dependencies>
@@ -83,6 +93,18 @@
             <artifactId>h2</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>5.14.2</version> <!-- Make sure to use the correct version of Mockito -->
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <version>5.14.2</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -99,17 +121,142 @@
                     </excludes>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.6.2</version>
+                <configuration>
+                    <show>private</show>
+                    <nohelp>true</nohelp>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.2</version> <!-- ou la version la plus récente -->
+                <configuration>
+                    <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
+                    <reportFormat>html</reportFormat> <!-- ou xml pour un format XML -->
+                    <useFile>false</useFile> <!-- si vous souhaitez générer les rapports en fichier -->
+                </configuration>
+            </plugin>
+            <!-- Plugin JaCoCo pour la couverture de code -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.12</version>
+                <executions>
+                    <!-- Première exécution avec un id unique -->
+                    <execution>
+                        <id>prepare-agent</id> <!-- ID unique pour cette exécution -->
+                        <goals>
+                            <goal>prepare-agent</goal> <!-- Ajoute l'agent JaCoCo pour la couverture de code -->
+                        </goals>
+                    </execution>
+
+                    <!-- Deuxième exécution avec un id unique -->
+                    <execution>
+                        <id>generate-report</id> <!-- ID unique pour cette exécution -->
+                        <goals>
+                            <goal>report</goal> <!-- Génère les rapports de couverture -->
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Plugin SonarQube -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>sonar-maven-plugin</artifactId>
+                <version>3.11.0.3922</version> <!-- Utilisez la dernière version disponible -->
+            </plugin>
         </plugins>
     </build>
+    <reporting>
+        <plugins>
+            <!-- Plugin Javadoc -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.6.2</version>
+                <configuration>
+                    <stylesheetfile>${basedir}/src/main/resources/static/css/javadoc.css</stylesheetfile>
+                    <show>public</show>
+                </configuration>
+            </plugin>
+            <!-- Plugin Checkstyle -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>3.2.0</version>
+                <reportSets>
+                    <reportSet>
+                        <reports>
+                            <report>checkstyle</report>
+                        </reports>
+                    </reportSet>
+                </reportSets>
+                <configuration>
+                    <configLocation>sun_checks.xml</configLocation>
+                    <encoding>UTF-8</encoding>
+                    <consoleOutput>true</consoleOutput>
+                    <failsOnError>false</failsOnError>
+                </configuration>
+            </plugin>
+            <!-- Plugin PMD -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+                <version>3.21.2</version>
+                <reportSets>
+                    <reportSet>
+                        <reports>
+                            <report>pmd</report>
+                            <report>cpd</report> <!-- Duplicate code detector -->
+                        </reports>
+                    </reportSet>
+                </reportSets>
+                <configuration>
+                    <targetJdk>17</targetJdk>
+                    <printFailingErrors>true</printFailingErrors>
+                    <failOnViolation>true</failOnViolation>
+                </configuration>
+            </plugin>
+            <!-- Plugin Changelog -->
 
+        </plugins>
+    </reporting>
     <distributionManagement>
         <repository>
-            <id>nexus-releases</id>
+            <id>nexus</id>
+            <name>Releases</name>
             <url>http://localhost:8081/repository/maven-releases/</url>
         </repository>
         <snapshotRepository>
-            <id>nexus-snapshots</id>
+            <id>nexus</id>
+            <name>Snapshot</name>
             <url>http://localhost:8081/repository/maven-snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
+
+    <scm>
+        <connection>scm:git:https://github.com/Mouadbouanani/Employee-Management-System.git</connection>
+        <developerConnection>scm:git:https://github.com/Mouadbouanani/Employee-Management-System.git</developerConnection>
+        <url>https://github.com/Mouadbouanani/Employee-Management-System</url>
+    </scm>
+
+    <developers>
+        <developer>
+            <id>dev1</id>
+            <name>Taha Moumni</name>
+            <email>tahamoum68@gmail.com</email>
+        </developer>
+        <developer>
+            <id>dev2</id>
+            <name>EL Bouanani Mouad</name>
+            <email>mouadbouanani1@gmail.com</email>
+        </developer>
+    </developers>
+
+
+
 </project>
