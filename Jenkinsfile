@@ -56,7 +56,7 @@ pipeline {
                 stage('Performance Testing') {
                     steps {
                         echo 'Lancement des tests de performance JMeter'
-                        sh 'jmeter -n -t performance-tests/test.jmx -l results.jtl'
+                        bat 'jmeter -n -t performance-tests/test.jmx -l results.jtl'
                     }
                 }
             }
