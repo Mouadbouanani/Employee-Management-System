@@ -74,6 +74,7 @@ pipeline {
                 }
                 stage('FindBugs') {
                     steps {
+                        bat 'mvn clean compile'
                         bat 'mvn findbugs:findbugs'
                     }
                 }
