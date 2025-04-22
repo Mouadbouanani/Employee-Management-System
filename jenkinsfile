@@ -1,47 +1,41 @@
 pipeline {
     agent any
 
-     environment {
-         DOCKER_IMAGE = "employee-app"
-         KUBE_NAMESPACE = "default"
-         BRANCH_NAME = "mouad'sBranch"
-         MAVEN_OPTS = "-Dmaven.repo.local=${env.WORKSPACE}/.m2/repository -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn"
-
+    environment {
+        DOCKER_IMAGE = "employee-app"
+        KUBE_NAMESPACE = "default"
+        BRANCH_NAME = "mouad'sBranch"
+    }
 
     stages {
         // Stage 1: Checkout Code
         stage('Checkout') {
             steps {
                 git url: 'https://github.com/Mouadbouanani/Employee-Management-System.git',
-                     branch: "${BRANCH_NAME}"  // Use the environment variable
+                     branch: "${BRANCH_NAME}"
             }
         }
 
         // Stage 2: Build
         stage('Build') {
             steps {
-                    bat 'mvn clean install -DskipTests' // Build the project
-
+                bat 'mvn clean install -DskipTests'
             }
         }
 
         // Stage 3: Test
         stage('Test') {
             steps {
-                    bat 'mvn test'
-                    junit 'build/test-results/test/**/*.xml'  // Archive test results
-
+                bat 'mvn test'
+                junit 'target/surefire-reports/**/*.xml'  // Fixed path
             }
         }
 
         // Stage 4: Package
         stage('Package') {
             steps {
-                    // Package the application
-                    bat 'mvn clean package -DskipTests'
-                     archiveArtifacts artifacts: 'build/libs/*.jar', fingerprint: true
-
-
+                bat 'mvn package -DskipTests'
+                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true  // Fixed path
             }
         }
 
@@ -49,22 +43,21 @@ pipeline {
         stage('Docker Build') {
             steps {
                 script {
-                    // Build with both BUILD_ID and branch name as tags
-                    docker.build("${DOCKER_IMAGE}:${env.BUILD_ID}-${BRANCH_NAME.replaceAll("'", "")}")
+                    docker.build("${DOCKER_IMAGE}:${env.BUILD_ID}-${BRANCH_NAME.replaceAll(\"'\", \"\")}")
                 }
             }
         }
 
-        // Stage 6: Docker Push (Optional)
+        // Stage 6: Docker Push
         stage('Docker Push') {
             when {
-                expression { env.BRANCH_NAME == "mouad'sBranch" }  // Only push from this branch
+                expression { env.BRANCH_NAME == "mouad'sBranch" }
             }
             steps {
                 script {
                     docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
-                        docker.image("${DOCKER_IMAGE}:${env.BUILD_ID}-${BRANCH_NAME.replaceAll("'", "")}").push()
-                        docker.image("${DOCKER_IMAGE}:latest").push()  // Optional: push as latest
+                        docker.image("${DOCKER_IMAGE}:${env.BUILD_ID}-${BRANCH_NAME.replaceAll(\"'\", \"\")}").push()
+                        docker.image("${DOCKER_IMAGE}:latest").push()
                     }
                 }
             }
@@ -73,14 +66,13 @@ pipeline {
         // Stage 7: Deploy to Kubernetes
         stage('Kubernetes Deploy') {
             when {
-                expression { env.BRANCH_NAME == "mouad'sBranch" }  // Only deploy from this branch
+                expression { env.BRANCH_NAME == "mouad'sBranch" }
             }
             steps {
                 script {
-                    // Update deployment.yaml with the new image tag
-                    def imageTag = "${env.BUILD_ID}-${BRANCH_NAME.replaceAll("'", "")}"
-                    sh """
-                        sed -i 's|image:.*|image: ${DOCKER_IMAGE}:${imageTag}|g' k8s/deployment.yaml
+                    def imageTag = "${env.BUILD_ID}-${BRANCH_NAME.replaceAll(\"'\", \"\")}"
+                    bat """
+                        sed -i "s|image:.*|image: ${DOCKER_IMAGE}:${imageTag}|g" k8s/deployment.yaml
                         kubectl apply -f k8s/deployment.yaml -n ${KUBE_NAMESPACE}
                         kubectl rollout status deployment/employee-app -n ${KUBE_NAMESPACE}
                     """
@@ -91,9 +83,8 @@ pipeline {
 
     post {
         always {
-            cleanWs()  // Clean workspace after build
+            cleanWs()
             script {
-                // Send build status to Slack/Teams (optional)
                 echo "Build finished: ${currentBuild.currentResult}"
             }
         }
