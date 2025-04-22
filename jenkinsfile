@@ -1,11 +1,6 @@
 pipeline {
     agent any
 
-     tools {
-         maven 'M3' // Ensure Maven is configured in Jenkins
-         jdk 'jdk17' // Ensure Java 17 is configured in Jenkins
-     }
-
      environment {
          DOCKER_IMAGE = "employee-app"
          KUBE_NAMESPACE = "default"
@@ -25,30 +20,27 @@ pipeline {
         // Stage 2: Build
         stage('Build') {
             steps {
-               withMaven(maven: 'M3') {
                     bat 'mvn clean install -DskipTests' // Build the project
-               }
+
             }
         }
 
         // Stage 3: Test
         stage('Test') {
             steps {
-                withMaven(maven: 'M3') {
                     bat 'mvn test'
                     junit 'build/test-results/test/**/*.xml'  // Archive test results
-                }
+
             }
         }
 
         // Stage 4: Package
         stage('Package') {
             steps {
-                withMaven(maven: 'M3') {
                     // Package the application
                     bat 'mvn clean package -DskipTests'
                      archiveArtifacts artifacts: 'build/libs/*.jar', fingerprint: true
-                }
+
 
             }
         }
