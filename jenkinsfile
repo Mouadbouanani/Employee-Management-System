@@ -116,7 +116,7 @@ stage('Docker Build & Push') {
             def image = docker.build("${DOCKER_IMAGE}:${imageTag}")
 
             echo "--- Pushing Docker image to Docker Hub ---"
-            docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
+            docker.withRegistry('https://registry.hub.docker.com', '1234567891234') {
                 image.push()
                 image.push("latest")
             }
