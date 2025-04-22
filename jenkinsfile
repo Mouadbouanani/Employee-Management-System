@@ -6,9 +6,10 @@ pipeline {
         KUBE_NAMESPACE = "default"
         BRANCH_NAME = "mouad'sBranch"
     }
-    triggers {
-            githubPush()
-            }
+ groovy
+ triggers {
+     githubPush()
+ }
 
     stages {
         stage('SCM Checkout') {
@@ -96,20 +97,44 @@ pipeline {
             }
         }
 
-        stage('Archiving') {
-            parallel {
-                stage('Artifactory (placeholder)') {
-                    steps {
-                        echo '--- Artifactory integration not yet configured ---'
-                    }
-                }
-                stage('Nexus (placeholder)') {
-                    steps {
-                        echo '--- Nexus upload step not yet implemented ---'
-                    }
-                }
-            }
-        }
+       stage('Archiving to Nexus') {
+                   steps {
+                       script {
+                           echo '--- Publishing artifacts to Nexus Repository ---'
+                           // Get the POM information
+                           pom = readMavenPom file: 'pom.xml'
+
+                           // Define artifact details
+                           filesByGlob = findFiles(glob: "target/*.jar")
+                           artifactPath = filesByGlob[0].path
+                           artifactExists = fileExists artifactPath
+
+                           if(artifactExists) {
+                               echo "*** Artifact: ${artifactPath}, group: ${pom.groupId}, packaging: ${pom.packaging}, version: ${ARTIFACT_VERSION}"
+
+                               nexusArtifactUploader(
+                                   nexusVersion: 'nexus3',
+                                   protocol: 'http',
+                                   nexusUrl: "${NEXUS_URL.replace('http://', '')}",
+                                   groupId: pom.groupId,
+                                   version: "${ARTIFACT_VERSION}",
+                                   repository: "${NEXUS_REPOSITORY}",
+                                   credentialsId: "${NEXUS_CREDENTIAL_ID}",
+                                   artifacts: [
+                                       [artifactId: pom.artifactId,
+                                        classifier: '',
+                                        file: artifactPath,
+                                        type: pom.packaging]
+                                   ]
+                               )
+
+                               echo '--- Artifact successfully published to Nexus Repository ---'
+                           } else {
+                               error "*** No artifact found in path: ${artifactPath}"
+                           }
+                       }
+                   }
+               }
 
        stage('Docker Build & Push') {
            steps {
