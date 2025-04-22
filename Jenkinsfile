@@ -99,12 +99,7 @@ pipeline {
 
         stage('Archiving') {
             parallel {
-                stage('Artifactory Upload') {
-                    steps {
-                        echo 'Upload vers Artifactory (simulation)'
-                        bat 'mvn deploy'
-                    }
-                }
+         
                 stage('Nexus Upload') {
                     steps {
                         echo 'Upload vers Nexus (simulation)'
