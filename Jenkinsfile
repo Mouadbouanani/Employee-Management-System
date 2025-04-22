@@ -36,12 +36,6 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
-            steps {
-                echo 'Déploiement simulé ici...'
-                // Exemple : sh './deploy.sh'
-            }
-        }
     }
 
     post {
