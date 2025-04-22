@@ -5,7 +5,7 @@ pipeline {
         DOCKER_IMAGE = "employee-app"
         KUBE_NAMESPACE = "default"  // Change if using a specific Kubernetes namespace
         // Escape the branch name with double quotes
-        BRANCH_NAME = "mouad'sBranch"ou "taha'sBranch"
+        BRANCH_NAME = "mouad'sBranch"
     }
 
     stages {
