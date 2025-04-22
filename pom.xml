@@ -27,52 +27,6 @@
         <sonar.host.url>http://localhost:9000</sonar.host.url>
         <sonar.login>squ_2e2b09bcc8bd0651486d821a72ba8cc2a468becb</sonar.login>
     </properties>
-    <profiles>
-        <profile>
-            <id>no-static-analysis</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>findbugs-maven-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>skip-findbugs</id>
-                                <phase>none</phase> <!-- évite l'exécution -->
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>static-analysis</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>findbugs-maven-plugin</artifactId>
-                        <version>3.0.5</version>
-                        <executions>
-                            <execution>
-                                <id>run-findbugs</id>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>findbugs</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
 
 
     <dependencies>
