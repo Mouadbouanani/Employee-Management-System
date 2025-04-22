@@ -116,6 +116,7 @@ stage('Docker Build & Push') {
         withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USER')]) {
             script {
                 def imageTag = "${env.BUILD_ID}-${BRANCH_NAME.replaceAll("'", "")}"
+                // Fix the syntax - use a variable interpolation without spaces
                 def fullImageName = "${DOCKER_USER}/${DOCKER_IMAGE}:${imageTag}"
 
                 echo "--- Checking if Docker image exists: ${fullImageName} ---"
@@ -127,8 +128,8 @@ stage('Docker Build & Push') {
                     echo "Image ${fullImageName} already exists locally, skipping build"
                 } else {
                     echo "--- Building Docker image: ${fullImageName} ---"
-                    // Build the image
-                    bat "docker build -t ${fullImageName} ."
+                    // Build the image - ensure there's no space in the tag name
+                    bat "docker build -t ${DOCKER_USER}/${DOCKER_IMAGE}:${imageTag} ."
                 }
 
                 // Login to Docker Hub
@@ -137,11 +138,11 @@ stage('Docker Build & Push') {
 
                 // Push the images
                 echo "--- Pushing Docker image: ${fullImageName} ---"
-                bat "docker push ${fullImageName}"
+                bat "docker push ${DOCKER_USER}/${DOCKER_IMAGE}:${imageTag}"
 
                 // Tag and push latest
                 echo "--- Tagging and pushing latest version ---"
-                bat "docker tag ${fullImageName} ${DOCKER_USER}/${DOCKER_IMAGE}:latest"
+                bat "docker tag ${DOCKER_USER}/${DOCKER_IMAGE}:${imageTag} ${DOCKER_USER}/${DOCKER_IMAGE}:latest"
                 bat "docker push ${DOCKER_USER}/${DOCKER_IMAGE}:latest"
 
                 echo "--- Docker image pushed successfully ---"
