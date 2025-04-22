@@ -74,7 +74,7 @@ pipeline {
                 }
                 stage('FindBugs') {
                     steps {
-                        bat 'mvn findbugs:findbugs'
+                        bat 'mvn spotbugs:spotbugs'
                     }
                 }
                 stage('PMD') {
