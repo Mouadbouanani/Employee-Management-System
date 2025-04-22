@@ -11,6 +11,7 @@ pipeline {
         PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
     }
 
+    stages {
         stage('Build') {
             steps {
                 sh 'mvn clean compile'
@@ -28,7 +29,6 @@ pipeline {
                 sh 'mvn package'
             }
         }
-
     }
 
     post {
