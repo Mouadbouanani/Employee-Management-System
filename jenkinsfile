@@ -6,6 +6,9 @@ pipeline {
         KUBE_NAMESPACE = "default"
         BRANCH_NAME = "mouad'sBranch"
     }
+    triggers {
+            githubPush()
+            }
 
     stages {
         stage('SCM Checkout') {
@@ -110,17 +113,39 @@ pipeline {
 
 stage('Docker Build & Push') {
     steps {
-        script {
-            def imageTag = "${env.BUILD_ID}-${BRANCH_NAME.replaceAll("'", "")}"
-            echo "--- Building Docker image: ${DOCKER_IMAGE}:${imageTag} ---"
-            def image = docker.build("${DOCKER_IMAGE}:${imageTag}")
+        withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USER')]) {
+            script {
+                def imageTag = "${env.BUILD_ID}-${BRANCH_NAME.replaceAll("'", "")}"
+                def fullImageName = "${DOCKER_USER}/${DOCKER_IMAGE}:${imageTag}"
 
-            echo "--- Pushing Docker image to Docker Hub ---"
-            docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
-                image.push()
-                image.push("latest")
+                echo "--- Checking if Docker image exists: ${fullImageName} ---"
+
+                // Check if image exists locally
+                def imageExists = bat(script: "docker image inspect ${fullImageName} > nul 2>&1", returnStatus: true) == 0
+
+                if (imageExists) {
+                    echo "Image ${fullImageName} already exists locally, skipping build"
+                } else {
+                    echo "--- Building Docker image: ${fullImageName} ---"
+                    // Build the image
+                    bat "docker build -t ${fullImageName} ."
+                }
+
+                // Login to Docker Hub
+                echo "--- Logging in to Docker Hub ---"
+                bat "echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USER% --password-stdin"
+
+                // Push the images
+                echo "--- Pushing Docker image: ${fullImageName} ---"
+                bat "docker push ${fullImageName}"
+
+                // Tag and push latest
+                echo "--- Tagging and pushing latest version ---"
+                bat "docker tag ${fullImageName} ${DOCKER_USER}/${DOCKER_IMAGE}:latest"
+                bat "docker push ${DOCKER_USER}/${DOCKER_IMAGE}:latest"
+
+                echo "--- Docker image pushed successfully ---"
             }
-            echo "--- Docker image pushed successfully ---"
         }
     }
 }
