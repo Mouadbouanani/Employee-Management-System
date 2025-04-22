@@ -5,7 +5,7 @@ pipeline {
         DOCKER_IMAGE = "employee-app"
         KUBE_NAMESPACE = "default"  // Change if using a specific Kubernetes namespace
         // Escape the branch name with double quotes
-        BRANCH_NAME = "mouad'sBranch"
+        BRANCH_NAME = 'mouad-branch'
     }
 
     stages {
@@ -20,7 +20,7 @@ pipeline {
         // Stage 2: Build
         stage('Build') {
             steps {
-                sh 'mvn clean package'  // For Java/Spring Boot
+                sh 'mvn clean install'  // For Java/Spring Boot
             }
         }
 
