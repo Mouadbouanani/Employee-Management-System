@@ -148,17 +148,17 @@
                 <executions>
                     <!-- Première exécution avec un id unique -->
                     <execution>
-                        <id>prepare-agent</id> <!-- ID unique pour cette exécution -->
+                        <id>prepare-agent</id>
                         <goals>
-                            <goal>prepare-agent</goal> <!-- Ajoute l'agent JaCoCo pour la couverture de code -->
+                            <goal>prepare-agent</goal>
                         </goals>
                     </execution>
 
                     <!-- Deuxième exécution avec un id unique -->
                     <execution>
-                        <id>generate-report</id> <!-- ID unique pour cette exécution -->
+                        <id>generate-report</id>
                         <goals>
-                            <goal>report</goal> <!-- Génère les rapports de couverture -->
+                            <goal>report</goal>
                         </goals>
                     </execution>
                 </executions>
@@ -167,7 +167,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>sonar-maven-plugin</artifactId>
-                <version>3.11.0.3922</version> <!-- Utilisez la dernière version disponible -->
+                <version>3.11.0.3922</version>
             </plugin>
         </plugins>
     </build>
