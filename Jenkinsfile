@@ -74,7 +74,7 @@ pipeline {
                 }
                 stage('FindBugs') {
                     steps {
-                        bat 'mvn spotbugs:spotbugs'
+                        bat 'mvn com.github.spotbugs:spotbugs-maven-plugin:spotbugs'
                     }
                 }
                 stage('PMD') {
