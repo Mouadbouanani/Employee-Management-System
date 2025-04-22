@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.4.3">
+    <testplan>
+        <hashTree>
+            <threadGroup>
+                <stringProp name="ThreadGroup.num_threads">10</stringProp>
+                <stringProp name="ThreadGroup.ramp_time">1</stringProp>
+                <stringProp name="ThreadGroup.loops">1</stringProp>
+                <hashTree>
+                    <httpRequest>
+                        <stringProp name="HTTPSampler.domain">example.com</stringProp>
+                        <stringProp name="HTTPSampler.path">/api/test</stringProp>
+                        <stringProp name="HTTPSampler.method">GET</stringProp>
+                        <stringProp name="HTTPSampler.protocol">http</stringProp>
+                    </httpRequest>
+                </hashTree>
+            </threadGroup>
+        </hashTree>
+    </testplan>
+</jmeterTestPlan>
