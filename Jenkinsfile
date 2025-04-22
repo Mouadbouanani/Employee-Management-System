@@ -2,12 +2,12 @@ pipeline {
     agent any
 
     tools {
-        maven 'Maven 3.8.6' // Doit correspondre au nom de l'outil Maven configuré dans Jenkins
-        jdk 'JDK 17'         // Idem pour le JDK
+        maven 'Maven'
+        jdk 'JDK'
     }
 
     environment {
-        JAVA_HOME = "${tool 'JDK 17'}"
+        JAVA_HOME = "${tool 'JDK'}"
         PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
     }
 
