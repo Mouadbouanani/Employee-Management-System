@@ -6,7 +6,6 @@ pipeline {
         KUBE_NAMESPACE = "default"
         BRANCH_NAME = "mouad'sBranch"
     }
- groovy
  triggers {
      githubPush()
  }
