@@ -108,24 +108,22 @@ pipeline {
             }
         }
 
-        stage('Docker Build & Push') {
-            steps {
-                script {
-                    def imageTag = "${env.BUILD_ID}-${BRANCH_NAME.replaceAll("'", "")}"
-                    echo "--- Building Docker image: ${DOCKER_IMAGE}:${imageTag} ---"
-                    def dockerUser = "mouad37" // Replace with your real Docker ID
-                    def dockerPassword = "mouad1937" // Replace with your real Docker password
-                    def image = docker.build("${DOCKER_IMAGE}:${imageTag}")
+stage('Docker Build & Push') {
+    steps {
+        script {
+            def imageTag = "${env.BUILD_ID}-${BRANCH_NAME.replaceAll("'", "")}"
+            echo "--- Building Docker image: ${DOCKER_IMAGE}:${imageTag} ---"
+            def image = docker.build("${DOCKER_IMAGE}:${imageTag}")
 
-                    echo "--- Pushing Docker image to Docker Hub ---"
-                    docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
-                        image.push()
-                        image.push("latest")
-                    }
-                    echo "--- Docker image pushed successfully ---"
-                }
+            echo "--- Pushing Docker image to Docker Hub ---"
+            docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
+                image.push()
+                image.push("latest")
             }
+            echo "--- Docker image pushed successfully ---"
         }
+    }
+}
 
         stage('Kubernetes Deploy') {
             when {
