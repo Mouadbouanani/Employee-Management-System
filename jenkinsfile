@@ -8,71 +8,128 @@ pipeline {
     }
 
     stages {
-        // Stage 1: Checkout Code
-        stage('Checkout') {
+        //Scrutation SCM
+        stage('SCM Checkout') {
             steps {
                 git url: 'https://github.com/Mouadbouanani/Employee-Management-System.git',
-                     branch: "${BRANCH_NAME}"
+                    branch: "${BRANCH_NAME}"
             }
         }
 
-        // Stage 2: Build
+        // Build
         stage('Build') {
-            steps {
-                bat 'mvn clean install -DskipTests'
-            }
-        }
-
-        // Stage 3: Test
-        stage('Test') {
-            steps {
-                bat 'mvn test'
-                junit 'target/surefire-reports/**/*.xml'  // Fixed path
-            }
-        }
-
-        // Stage 4: Package
-        stage('Package') {
-            steps {
-                bat 'mvn package -DskipTests'
-                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true  // Fixed path
-            }
-        }
-
-        // Stage 5: Docker Build
-        stage('Docker Build') {
-            steps {
-                script {
-                    docker.build("${DOCKER_IMAGE}:${env.BUILD_ID}-${BRANCH_NAME.replaceAll(\"'\", \"\")}")
+            parallel {
+                stage('Build with Maven') {
+                    steps {
+                        bat 'mvn clean compile'
+                    }
                 }
-            }
-        }
-
-        // Stage 6: Docker Push
-        stage('Docker Push') {
-            when {
-                expression { env.BRANCH_NAME == "mouad'sBranch" }
-            }
-            steps {
-                script {
-                    docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
-                        docker.image("${DOCKER_IMAGE}:${env.BUILD_ID}-${BRANCH_NAME.replaceAll(\"'\", \"\")}").push()
-                        docker.image("${DOCKER_IMAGE}:latest").push()
+                stage('Build with Gradle (placeholder)') {
+                    steps {
+                        echo 'Gradle build step skipped (using Maven only).'
                     }
                 }
             }
         }
 
-        // Stage 7: Deploy to Kubernetes
+        //Tests
+        stage('Tests') {
+            parallel {
+                stage('JUnit Tests') {
+                    steps {
+                        bat 'mvn test'
+                        junit 'target/surefire-reports/**/*.xml'
+                    }
+                }
+                stage('Performance Testing (placeholder)') {
+                    steps {
+                        echo 'Performance tests not yet implemented.'
+                    }
+                }
+                stage('Functional Testing (placeholder)') {
+                    steps {
+                        echo 'Functional tests not yet implemented.'
+                    }
+                }
+            }
+        }
+
+        //Analyse du code
+        stage('Code Analysis') {
+            parallel {
+                stage('Checkstyle') {
+                    steps {
+                        bat 'mvn checkstyle:checkstyle'
+                    }
+                }
+                stage('PMD') {
+                    steps {
+                        bat 'mvn pmd:pmd'
+                    }
+                }
+                stage('FindBugs / SpotBugs') {
+                    steps {
+                        bat 'mvn spotbugs:spotbugs'
+                    }
+                }
+            }
+        }
+
+        //JavaDoc
+        stage('JavaDoc') {
+            steps {
+                bat 'mvn javadoc:javadoc'
+                archiveArtifacts artifacts: 'target/site/apidocs/**', allowEmptyArchive: true
+            }
+        }
+
+        // Packaging
+        stage('Package') {
+            steps {
+                bat 'mvn package -DskipTests'
+                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+            }
+        }
+
+        // Archivage
+        stage('Archiving') {
+            parallel {
+                stage('Artifactory (placeholder)') {
+                    steps {
+                        echo 'Artifactory integration not yet configured.'
+                    }
+                }
+                stage('Nexus (placeholder)') {
+                    steps {
+                        echo 'Nexus upload step not yet implemented.'
+                    }
+                }
+            }
+        }
+
+        // Déploiement
+        stage('Docker Build & Push') {
+            steps {
+                script {
+                    def imageTag = "${env.BUILD_ID}-${BRANCH_NAME.replaceAll("'", "")}"
+                    def image = docker.build("${DOCKER_IMAGE}:${imageTag}")
+                    docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
+                        image.push()
+                        image.push("latest")
+                    }
+                }
+            }
+        }
+
         stage('Kubernetes Deploy') {
             when {
                 expression { env.BRANCH_NAME == "mouad'sBranch" }
             }
             steps {
                 script {
-                    def imageTag = "${env.BUILD_ID}-${BRANCH_NAME.replaceAll(\"'\", \"\")}"
+                    def imageTag = "${env.BUILD_ID}-${BRANCH_NAME.replaceAll("'", "")}"
                     bat """
-                        sed -i "s|image:.*|image: ${DOCKER_IMAGE}:${imageTag}|g" k8s/deployment.yaml
+                        powershell -Command "(Get-Content k8s/deployment.yaml) -replace 'image:.*', 'image: ${DOCKER_IMAGE}:${imageTag}' | Set-Content k8s/deployment.yaml"
                         kubectl apply -f k8s/deployment.yaml -n ${KUBE_NAMESPACE}
                         kubectl rollout status deployment/employee-app -n ${KUBE_NAMESPACE}
                     """
@@ -90,11 +147,8 @@ pipeline {
         }
         failure {
             mail to: 'mouadbouanani1@gmail.com',
-                 subject: "Pipeline Failed - Employee Management System (Branch: ${BRANCH_NAME})",
-                 body: """
-                 Build #${env.BUILD_NUMBER} failed in branch ${BRANCH_NAME}.
-                 Check logs: ${env.BUILD_URL}
-                 """
+                subject: "Pipeline Failed - ${BRANCH_NAME}",
+                body: "Build #${env.BUILD_NUMBER} failed.\nCheck: ${env.BUILD_URL}"
         }
         success {
             echo "Pipeline succeeded! App deployed from branch ${BRANCH_NAME}."
