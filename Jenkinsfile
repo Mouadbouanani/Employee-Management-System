@@ -29,7 +29,7 @@ pipeline {
                 stage('Build with Gradle') {
                     steps {
                         echo 'Simulated Gradle build (if applicable)'
-                        // sh './gradlew build'
+                        bat './gradlew build'
                     }
                 }
             }
@@ -55,8 +55,8 @@ pipeline {
                 }
                 stage('Performance Testing') {
                     steps {
-                        echo 'Simulated performance tests'
-                        bat 'jmeter -n -t test.jmx'
+                        echo 'Lancement des tests de performance JMeter'
+                        sh 'jmeter -n -t performance-tests/test.jmx -l results.jtl'
                     }
                 }
             }
