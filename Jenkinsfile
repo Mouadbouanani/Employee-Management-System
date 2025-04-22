@@ -11,13 +11,6 @@ pipeline {
         PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
     }
 
-    stages {
-        stage('Checkout') {
-            steps {
-                git 'https://github.com/Mouadbouanani/Employee-Management-System.git'
-            }
-        }
-
         stage('Build') {
             steps {
                 sh 'mvn clean compile'
