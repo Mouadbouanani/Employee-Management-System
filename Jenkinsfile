@@ -50,7 +50,7 @@ pipeline {
                 stage('Functional Testing') {
                     steps {
                         echo 'Simulated functional tests'
-                        bat 'mvn verify -Dgroups=functional -Pno-static-analysis'
+                        bat 'mvn verify -Pno-static-analysis -Dgroups=functional'
                     }
                 }
                 stage('Performance Testing') {
@@ -74,7 +74,6 @@ pipeline {
                 }
                 stage('FindBugs') {
                     steps {
-                        bat 'mvn clean compile'
                         bat 'mvn findbugs:findbugs'
                     }
                 }
