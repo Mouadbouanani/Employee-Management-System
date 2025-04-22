@@ -1,12 +1,17 @@
 pipeline {
     agent any
 
-    environment {
-        DOCKER_IMAGE = "employee-app"
-        KUBE_NAMESPACE = "default"  // Change if using a specific Kubernetes namespace
-        // Escape the branch name with double quotes
-        BRANCH_NAME = "mouad'sBranch"
-    }
+     tools {
+         maven 'M3' // Ensure Maven is configured in Jenkins
+         jdk 'jdk17' // Ensure Java 17 is configured in Jenkins
+     }
+
+     environment {
+         DOCKER_IMAGE = "employee-app"
+         KUBE_NAMESPACE = "default"
+         BRANCH_NAME = "mouad'sBranch"
+         MAVEN_OPTS = "-Dmaven.repo.local=${env.WORKSPACE}/.m2/repository -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn"
+
 
     stages {
         // Stage 1: Checkout Code
@@ -20,23 +25,31 @@ pipeline {
         // Stage 2: Build
         stage('Build') {
             steps {
-                sh 'mvn clean install'  // For Java/Spring Boot
+               withMaven(maven: 'M3') {
+                    bat 'mvn clean install -DskipTests' // Build the project
+               }
             }
         }
 
         // Stage 3: Test
         stage('Test') {
             steps {
-                sh 'mvn test'
-                junit 'build/test-results/test/**/*.xml'  // Archive test results
+                withMaven(maven: 'M3') {
+                    bat 'mvn test'
+                    junit 'build/test-results/test/**/*.xml'  // Archive test results
+                }
             }
         }
 
         // Stage 4: Package
         stage('Package') {
             steps {
-                sh 'mvn package'
-                archiveArtifacts artifacts: 'build/libs/*.jar', fingerprint: true
+                withMaven(maven: 'M3') {
+                    // Package the application
+                    bat 'mvn clean package -DskipTests'
+                     archiveArtifacts artifacts: 'build/libs/*.jar', fingerprint: true
+                }
+
             }
         }
 
