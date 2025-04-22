@@ -29,7 +29,7 @@ pipeline {
                 stage('Build with Gradle') {
                     steps {
                         echo 'Simulated Gradle build (if applicable)'
-                        bat './gradlew build'
+                        // bat './gradlew build'
                     }
                 }
             }
