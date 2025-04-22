@@ -28,7 +28,12 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/css/**", "/js/**","/github-webhook").permitAll()
+                        .requestMatchers(
+                                "/login",
+                                "/css/**",
+                                "/js/**",
+                                "/github-webhook"  // Ensure this is included
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
@@ -41,7 +46,12 @@ public class SecurityConfig {
                         .logoutUrl("/logout")
                         .logoutSuccessUrl("/login?logout=true")
                         .permitAll()
+                )
+                // CRITICAL ADDITION:
+                .csrf(csrf -> csrf
+                        .ignoringRequestMatchers("/github-webhook")  // Disable CSRF for webhook
                 );
+
         return http.build();
     }
     @Bean
