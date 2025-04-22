@@ -72,11 +72,11 @@ pipeline {
                         bat 'mvn checkstyle:checkstyle'
                     }
                 }
-                //stage('FindBugs') {
-                //    steps {
-                //        bat 'mvn com.github.spotbugs:spotbugs-maven-plugin:spotbugs'
-                //    }
-                //}
+                stage('FindBugs') {
+                    steps {
+                        bat 'mvn com.github.spotbugs:spotbugs-maven-plugin:spotbugs'
+                    }
+                }
                 stage('PMD') {
                     steps {
                         bat 'mvn pmd:pmd'

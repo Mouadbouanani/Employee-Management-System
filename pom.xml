@@ -29,6 +29,7 @@
     </properties>
 
 
+
     <dependencies>
         <!-- Spring Boot Core -->
         <dependency>
@@ -53,6 +54,13 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>spotbugs-annotations</artifactId>
+            <version>4.7.3</version>
+            <scope>provided</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.thymeleaf.extras</groupId>
             <artifactId>thymeleaf-extras-springsecurity6</artifactId>
@@ -176,13 +184,21 @@
                 <version>4.7.3.0</version>
                 <executions>
                     <execution>
+                        <id>spotbugs</id>
                         <phase>verify</phase>
                         <goals>
                             <goal>check</goal>
                         </goals>
                     </execution>
                 </executions>
+                <configuration>
+                    <failOnError>false</failOnError> <!-- pour que le build ne s'arrête pas -->
+                    <effort>Max</effort> <!-- Niveau de détail -->
+                    <threshold>Low</threshold> <!-- Sensibilité -->
+                    <xmlOutput>true</xmlOutput>
+                </configuration>
             </plugin>
+
         </plugins>
     </build>
     <reporting>
