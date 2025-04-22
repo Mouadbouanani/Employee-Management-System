@@ -50,7 +50,7 @@ pipeline {
                 stage('Functional Testing') {
                     steps {
                         echo 'Simulated functional tests'
-                        bat 'mvn verify -Dgroups=functional'
+                        bat 'mvn verify -Dgroups=functional -Pno-static-analysis''
                     }
                 }
                 stage('Performance Testing') {
