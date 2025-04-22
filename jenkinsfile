@@ -111,47 +111,48 @@ pipeline {
             }
         }
 
-stage('Docker Build & Push') {
-    steps {
-        withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USER')]) {
-            script {
-                def imageTag = "${env.BUILD_ID}-${BRANCH_NAME.replaceAll("'", "")}"
-                // Fix the syntax - use a variable interpolation without spaces
-                def fullImageName = "${DOCKER_USER}/${DOCKER_IMAGE}:${imageTag}"
+       stage('Docker Build & Push') {
+           steps {
+               withCredentials([usernamePassword(
+                   credentialsId: 'docker-hub-credentials',
+                   passwordVariable: 'DOCKER_PASSWORD',
+                   usernameVariable: 'DOCKER_USER'
+               )]) {
+                   script {
+                       def imageTag = "${env.BUILD_ID}-${BRANCH_NAME.replaceAll("'", "")}"
+                       def fullImageName = "${DOCKER_USER}/${DOCKER_IMAGE}:${imageTag}"
 
-                echo "--- Checking if Docker image exists: ${fullImageName} ---"
+                       echo "--- Building Docker image: ${fullImageName} ---"
+                       bat "docker build -t ${fullImageName} ."
 
-                // Check if image exists locally
-                def imageExists = bat(script: "docker image inspect ${fullImageName} > nul 2>&1", returnStatus: true) == 0
+                       // Improved login command with error handling
+                       echo "--- Logging in to Docker Hub ---"
+                       def loginCmd = """
+                           @echo off
+                           echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USER% --password-stdin
+                           if %errorlevel% neq 0 (
+                               echo ERROR: Docker login failed
+                               exit /b 1
+                           )
+                       """
+                       def loginStatus = bat(script: loginCmd, returnStatus: true)
 
-                if (imageExists) {
-                    echo "Image ${fullImageName} already exists locally, skipping build"
-                } else {
-                    echo "--- Building Docker image: ${fullImageName} ---"
-                    // Build the image - ensure there's no space in the tag name
-                    bat "docker build -t ${DOCKER_USER}/${DOCKER_IMAGE}:${imageTag} ."
-                }
+                       if (loginStatus != 0) {
+                           error "Docker login failed with status ${loginStatus}"
+                       } else {
+                           echo "--- Pushing Docker image ---"
+                           bat "docker push ${fullImageName}"
 
-                // Login to Docker Hub
-                echo "--- Logging in to Docker Hub ---"
-                bat "echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USER% --password-stdin"
+                           // Tag and push latest
+                           bat "docker tag ${fullImageName} ${DOCKER_USER}/${DOCKER_IMAGE}:latest"
+                           bat "docker push ${DOCKER_USER}/${DOCKER_IMAGE}:latest"
+                       }
+                   }
+               }
+           }
+       }
 
-                // Push the images
-                echo "--- Pushing Docker image: ${fullImageName} ---"
-                bat "docker push ${DOCKER_USER}/${DOCKER_IMAGE}:${imageTag}"
-
-                // Tag and push latest
-                echo "--- Tagging and pushing latest version ---"
-                bat "docker tag ${DOCKER_USER}/${DOCKER_IMAGE}:${imageTag} ${DOCKER_USER}/${DOCKER_IMAGE}:latest"
-                bat "docker push ${DOCKER_USER}/${DOCKER_IMAGE}:latest"
-
-                echo "--- Docker image pushed successfully ---"
-            }
-        }
-    }
-}
-
-        stage('Kubernetes Deploy') {
+       stage('Kubernetes Deploy') {
             when {
                 expression { env.BRANCH_NAME == "mouad'sBranch" }
             }
@@ -168,23 +169,25 @@ stage('Docker Build & Push') {
                     bat "kubectl rollout status deployment/employee-app -n ${KUBE_NAMESPACE}"
                 }
             }
-        }
+       }
     }
 
     post {
         always {
-            cleanWs()
+            deleteDir()
             script {
-                echo "--- Pipeline finished with result: ${currentBuild.currentResult} ---"
+                echo "Pipeline finished with status: ${currentBuild.currentResult}"
             }
         }
         failure {
-            mail to: 'mouadbouanani1@gmail.com',
-                subject: "Pipeline Failed - ${BRANCH_NAME}",
-                body: "Build #${env.BUILD_NUMBER} failed.\nCheck: ${env.BUILD_URL}"
-        }
-        success {
-            echo "--- Pipeline succeeded! App deployed from branch ${BRANCH_NAME} ---"
+            emailext (
+                subject: "FAILED: Job '${env.JOB_NAME}' (${env.BUILD_NUMBER})",
+                body: """<p>Pipeline failed for branch ${BRANCH_NAME}</p>
+                         <p>Check build details at: <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
+                         <p>Error: ${currentBuild.currentResult}</p>""",
+                to: 'mouadbouanani1@gmail.com',
+                mimeType: 'text/html'
+            )
         }
     }
 }
