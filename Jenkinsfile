@@ -55,7 +55,7 @@ pipeline {
                 }
                 stage('Performance Testing') {
                     environment {
-                        PATH = "C:\Tools\apache-jmeter-5.6.3\bin;${env.PATH}"
+                        PATH = "C:\\Tools\\apache-jmeter-5.6.3\\bin;${env.PATH}"
                     }
                     steps {
                         echo 'Lancement des tests de performance JMeter'
