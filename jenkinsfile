@@ -96,44 +96,49 @@ pipeline {
             }
         }
 
-       stage('Archiving to Nexus') {
-                   steps {
-                       script {
-                           echo '--- Publishing artifacts to Nexus Repository ---'
-                           // Get the POM information
-                           pom = readMavenPom file: 'pom.xml'
+      stage('Archiving to Nexus') {
+          steps {
+              script {
+                  echo '--- Publishing artifacts to Nexus Repository ---'
 
-                           // Define artifact details
-                           filesByGlob = findFiles(glob: "target/*.jar")
-                           artifactPath = filesByGlob[0].path
-                           artifactExists = fileExists artifactPath
+                  // Read POM information
+                  pom = readMavenPom file: 'pom.xml'
 
-                           if(artifactExists) {
-                               echo "*** Artifact: ${artifactPath}, group: ${pom.groupId}, packaging: ${pom.packaging}, version: ${ARTIFACT_VERSION}"
+                  // Find the built artifact
+                  filesByGlob = findFiles(glob: "target/*.${pom.packaging}")
+                  artifactPath = filesByGlob[0].path
 
-                               nexusArtifactUploader(
-                                   nexusVersion: 'nexus3',
-                                   protocol: 'http',
-                                   nexusUrl: "${NEXUS_URL.replace('http://', '')}",
-                                   groupId: pom.groupId,
-                                   version: "${ARTIFACT_VERSION}",
-                                   repository: "${NEXUS_REPOSITORY}",
-                                   credentialsId: "${NEXUS_CREDENTIAL_ID}",
-                                   artifacts: [
-                                       [artifactId: pom.artifactId,
-                                        classifier: '',
-                                        file: artifactPath,
-                                        type: pom.packaging]
-                                   ]
-                               )
+                  if(fileExists(artifactPath)) {
+                      echo "*** Artifact: ${artifactPath}, group: ${pom.groupId}, packaging: ${pom.packaging}, version: ${pom.version}"
 
-                               echo '--- Artifact successfully published to Nexus Repository ---'
-                           } else {
-                               error "*** No artifact found in path: ${artifactPath}"
-                           }
-                       }
-                   }
-               }
+                      // Determine repository based on version
+                      def isSnapshot = pom.version.endsWith('-SNAPSHOT')
+                      def repoType = isSnapshot ? 'snapshots' : 'releases'
+                      def credsId = isSnapshot ? 'nexus-snapshots' : 'nexus-releases'
+
+                      nexusArtifactUploader(
+                          nexusVersion: 'nexus3',
+                          protocol: 'http',
+                          nexusUrl: "localhost:8081", // Remove http:// prefix
+                          groupId: pom.groupId,
+                          version: pom.version,
+                          repository: "maven-${repoType}",
+                          credentialsId: credsId,
+                          artifacts: [
+                              [artifactId: pom.artifactId,
+                               classifier: '',
+                               file: artifactPath,
+                               type: pom.packaging]
+                          ]
+                      )
+
+                      echo '--- Artifact successfully published to Nexus Repository ---'
+                  } else {
+                      error "*** No artifact found in path: ${artifactPath}"
+                  }
+              }
+          }
+      }
 
        stage('Docker Build & Push') {
            steps {
