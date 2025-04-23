@@ -150,42 +150,50 @@ pipeline {
                steps {
                    withCredentials([usernamePassword(
                        credentialsId: 'docker-hub-credentials',
-                       passwordVariable: 'DOCKER_PASSWORD',
-                       usernameVariable: 'DOCKER_USER'
+                       usernameVariable: 'DOCKER_USER',
+                       passwordVariable: 'DOCKER_PASSWORD'
                    )]) {
                        script {
-                           def imageTag = "${env.BUILD_ID}-${BRANCH_NAME.replaceAll("'", "")}"
-                           def fullImageName = "${DOCKER_IMAGE}:${imageTag}"
+                           try {
+                               echo "--- Docker login ---"
+                               def loginCmd = """
+                                   @echo off
+                                   echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USER% --password-stdin
+                                   if %errorlevel% neq 0 (
+                                       echo ERROR: Docker login failed
+                                       exit /b 1
+                                   )
+                               """
+                               def loginStatus = bat(script: loginCmd, returnStatus: true)
+                               if (loginStatus != 0) {
+                                   error "Docker login failed"
+                               }
 
-                           echo "--- Building Docker image: ${fullImageName} ---"
-                           bat "docker build -t ${fullImageName} ."
+                               def imageTag = "${env.BUILD_ID}-${BRANCH_NAME.replaceAll("'", "")}"
+                               def fullImageName = "${DOCKER_IMAGE}:${imageTag}"
 
-                           // Improved login command with error handling
-                           echo "--- Logging in to Docker Hub ---"
-                           def loginCmd = """
-                               @echo off
-                               echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USER% --password-stdin
-                               if %errorlevel% neq 0 (
-                                   echo ERROR: Docker login failed
-                                   exit /b 1
-                               )
-                           """
-                           def loginStatus = bat(script: loginCmd, returnStatus: true)
+                               echo "--- Building Docker image: ${fullImageName} ---"
+                               try {
+                                   bat "docker build -t ${fullImageName} ."
+                               } catch (buildErr) {
+                                   error "Docker build failed: ${buildErr.getMessage()}"
+                               }
 
-                           if (loginStatus != 0) {
-                               error "Docker login failed with status ${loginStatus}"
-                           } else {
-                               echo "--- Pushing Docker image ---"
-                               bat "docker push ${fullImageName}"
+                               echo "--- Pushing Docker image to Docker Hub ---"
+                               try {
+                                   bat "docker push ${fullImageName}"
+                               } catch (pushErr) {
+                                   error "Docker push failed: ${pushErr.getMessage()}"
+                               }
 
-                               // Tag and push latest
-                               bat "docker tag ${fullImageName} ${DOCKER_USER}/${DOCKER_IMAGE}:latest"
-                               bat "docker push ${DOCKER_USER}/${DOCKER_IMAGE}:latest"
+                           } catch (err) {
+                               error "Error during Docker stage: ${err.getMessage()}"
                            }
                        }
                    }
                }
            }
+
 
        stage('Kubernetes Deploy') {
             when {
