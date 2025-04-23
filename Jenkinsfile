@@ -24,7 +24,7 @@ pipeline {
             parallel {
                 stage('Build with Maven') {
                     steps {
-                        bat 'mvn clean compile'
+                        bat 'mvn clean compile8'
                     }
                 }
                 stage('Build with Gradle') {
