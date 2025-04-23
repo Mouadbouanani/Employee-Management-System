@@ -21,7 +21,7 @@ pipeline {
         }
 
         stage('Build') {
-            parallel {
+            parallel failFast: true, stages: {
                 stage('Build with Maven') {
                     steps {
                         bat 'mvn clean compile'
@@ -40,7 +40,7 @@ pipeline {
             parallel {
                 stage('JUnit Tests') {
                     steps {
-                        bat 'mvn test8'
+                        bat 'mvn test'
                     }
                     post {
                         always {
