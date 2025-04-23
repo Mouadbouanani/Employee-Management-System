@@ -24,7 +24,7 @@ pipeline {
             parallel {
                 stage('Build with Maven') {
                     steps {
-                        bat 'mvn clean compile8'
+                        bat 'mvn clean compile'
                     }
                 }
                 stage('Build with Gradle') {
@@ -40,7 +40,7 @@ pipeline {
             parallel {
                 stage('JUnit Tests') {
                     steps {
-                        bat 'mvn test'
+                        bat 'mvn test8'
                     }
                     post {
                         always {
