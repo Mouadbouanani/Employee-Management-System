@@ -24,7 +24,7 @@ pipeline {
             parallel {
                 stage('Build with Maven') {
                     steps {
-                        bat 'mvn clean compi8le'
+                        bat 'mvn clean compile'
                     }
                 }
                 stage('Build with Gradle') {
@@ -157,7 +157,8 @@ pipeline {
             emailext (
                 subject: "✅ Build réussi - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                 body: "Le pipeline Jenkins a réussi !\nVoir le build ici : ${env.BUILD_URL}",
-                to: 'tahamoum68@gmail.com, mouadbouanani1@gmail.com'
+                to: 'tahamoum68@gmail.com, mouadbouanani1@gmail.com',
+                recipientProviders: [[$class: 'DevelopersRecipientProvider']]
             )
         }
 
@@ -169,8 +170,9 @@ pipeline {
                     <p><strong>Le pipeline Jenkins a échoué.</strong></p>
                     <p>Voir les logs ici : <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
                 """,
+                mimeType: 'text/html',
                 to: 'tahamoum68@gmail.com, mouadbouanani1@gmail.com',
-                mimeType: 'text/html'
+                recipientProviders: [[$class: 'DevelopersRecipientProvider']]
             )
         }
     }
