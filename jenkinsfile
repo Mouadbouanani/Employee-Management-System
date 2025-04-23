@@ -146,30 +146,54 @@ pipeline {
                   }
               }
           }
-                stage('Deploiement') {
-                      parallel {
-                          stage("Creer l'image") {
-                              steps {
-                                  script {
-                                      bat 'docker build -t employee-management:latest .'
-                                  }
-                              }
-                          }
-                          stage("Publier l'image") {
-                              steps {
-                                  script {
-                                      withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                                          bat """
-                                              echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin
-                                              docker build -t ${DOCKER_IMAGE} .
-                                              docker push ${DOCKER_IMAGE}
-                                          """
-                                      }
-                                  }
-                              }
-                          }
-                      }
-                  }
+           stage('Docker Build & Push') {
+               steps {
+                   withCredentials([usernamePassword(
+                       credentialsId: 'docker-hub-credentials',
+                       usernameVariable: 'DOCKER_USER',
+                       passwordVariable: 'DOCKER_PASSWORD'
+                   )]) {
+                       script {
+                           try {
+                               echo "--- Docker login ---"
+                               def loginCmd = """
+                                   @echo off
+                                   echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USER% --password-stdin
+                                   if %errorlevel% neq 0 (
+                                       echo ERROR: Docker login failed
+                                       exit /b 1
+                                   )
+                               """
+                               def loginStatus = bat(script: loginCmd, returnStatus: true)
+                               if (loginStatus != 0) {
+                                   error "Docker login failed"
+                               }
+
+                               def imageTag = "${env.BUILD_ID}-${BRANCH_NAME.replaceAll("'", "")}"
+                               def fullImageName = "${DOCKER_IMAGE}:${imageTag}"
+
+                               echo "--- Building Docker image: ${fullImageName} ---"
+                               try {
+                                   bat "docker build -t ${fullImageName} ."
+                               } catch (buildErr) {
+                                   error "Docker build failed: ${buildErr.getMessage()}"
+                               }
+
+                               echo "--- Pushing Docker image to Docker Hub ---"
+                               try {
+                                   bat "docker push ${fullImageName}"
+                               } catch (pushErr) {
+                                   error "Docker push failed: ${pushErr.getMessage()}"
+                               }
+
+                           } catch (err) {
+                               error "Error during Docker stage: ${err.getMessage()}"
+                           }
+                       }
+                   }
+               }
+           }
+
 
        stage('Kubernetes Deploy') {
             when {
