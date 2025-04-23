@@ -24,7 +24,7 @@ pipeline {
             parallel failFast: true, stages: {
                 stage('Build with Maven') {
                     steps {
-                        bat 'mvn clean compile'
+                        bat 'mvn clean compi8le'
                     }
                 }
                 stage('Build with Gradle') {
