@@ -1,21 +1,22 @@
 pipeline {
     agent any
 
-    environment {
-        DOCKER_IMAGE = "employee-app"
-        KUBE_NAMESPACE = "default"
-        BRANCH_NAME = "mouad'sBranch"
+    tools {
+        maven 'Maven'
+        jdk 'JDK'
     }
-     triggers {
-         githubPush()
-     }
+
+    environment {
+        JAVA_HOME = "${tool 'JDK'}"
+        PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+        DOCKER_IMAGE = 'mouad37/employee-management:latest'
+    }
 
     stages {
         stage('SCM Checkout') {
             steps {
-                echo '--- Checking out source code from Git ---'
-                git url: 'https://github.com/Mouadbouanani/Employee-Management-System.git',
-                    branch: "${BRANCH_NAME}"
+                echo 'Scrutation SCM'
+                checkout scm
             }
         }
 
@@ -23,58 +24,63 @@ pipeline {
             parallel {
                 stage('Build with Maven') {
                     steps {
-                        echo '--- Running Maven compile ---'
                         bat 'mvn clean compile'
                     }
                 }
-                stage('Build with Gradle (placeholder)') {
+                stage('Build with Gradle') {
                     steps {
-                        echo '--- Skipping Gradle build step ---'
+                        echo 'Simulated Gradle build (if applicable)'
+                        // bat './gradlew build'
                     }
                 }
             }
         }
 
-        stage('Tests') {
+        stage('Test') {
             parallel {
                 stage('JUnit Tests') {
                     steps {
-                        echo '--- Running unit tests ---'
                         bat 'mvn test'
-                        junit 'target/surefire-reports/**/*.xml'
+                    }
+                    post {
+                        always {
+                            junit '**/target/surefire-reports/*.xml'
+                        }
                     }
                 }
-                stage('Performance Testing (placeholder)') {
+                stage('Functional Testing') {
                     steps {
-                        echo '--- Performance tests not yet implemented ---'
+                        echo 'Simulated functional tests'
+                        bat 'mvn verify'
                     }
                 }
-                stage('Functional Testing (placeholder)') {
+                stage('Performance Testing') {
+                    environment {
+                        PATH = "C:\\Tools\\apache-jmeter-5.6.3\\bin;${env.PATH}"
+                    }
                     steps {
-                        echo '--- Functional tests not yet implemented ---'
+                        echo 'Lancement des tests de performance JMeter'
+                        bat 'jmeter -n -t performance-tests/test.jmx -l results.jtl'
                     }
                 }
             }
         }
 
-        stage('Code Analysis') {
+        stage('Analyse du code') {
             parallel {
                 stage('Checkstyle') {
                     steps {
-                        echo '--- Running Checkstyle ---'
                         bat 'mvn checkstyle:checkstyle'
+                    }
+                }
+                stage('FindBugs') {
+                    steps {
+                        bat 'mvn com.github.spotbugs:spotbugs-maven-plugin:spotbugs'
                     }
                 }
                 stage('PMD') {
                     steps {
-                        echo '--- Running PMD ---'
                         bat 'mvn pmd:pmd'
-                    }
-                }
-                stage('FindBugs / SpotBugs') {
-                    steps {
-                        echo '--- Running SpotBugs ---'
-                        bat 'mvn spotbugs:spotbugs'
                     }
                 }
             }
@@ -82,155 +88,341 @@ pipeline {
 
         stage('JavaDoc') {
             steps {
-                echo '--- Generating JavaDoc ---'
                 bat 'mvn javadoc:javadoc'
-                archiveArtifacts artifacts: 'target/site/apidocs/**', allowEmptyArchive: true
             }
         }
 
-        stage('Package') {
+        stage('Packaging') {
             steps {
-                echo '--- Packaging application (JAR) ---'
-                bat 'mvn package -DskipTests'
-                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+                bat 'mvn package'
             }
         }
 
-          stage('Archiving to Nexus') {
-              steps {
-                  script {
-                      try {
-                          echo '--- Publishing artifacts to Nexus Repository ---'
-
-                          // Read POM information
-                          pom = readMavenPom file: 'pom.xml'
-
-                          // Find the built artifact
-                          filesByGlob = findFiles(glob: "target/*.${pom.packaging}")
-                          artifactPath = filesByGlob[0].path
-
-                          if (fileExists(artifactPath)) {
-                              echo "*** Artifact: ${artifactPath}, group: ${pom.groupId}, packaging: ${pom.packaging}, version: ${pom.version}"
-
-                              def repoType = pom.version.endsWith('-SNAPSHOT') ? 'snapshots' : 'releases'
-
-                              withCredentials([usernamePassword(
-                                  credentialsId: 'nexus-credentials',
-                                  usernameVariable: 'NEXUS_USER',
-                                  passwordVariable: 'NEXUS_PASS'
-                              )]) {
-                                  nexusArtifactUploader(
-                                      nexusVersion: 'nexus3',
-                                      protocol: 'http',
-                                      nexusUrl: "localhost:8081",
-                                      groupId: pom.groupId,
-                                      version: pom.version,
-                                      repository: "maven-${repoType}",
-                                      credentialsId: 'nexus-credentials',
-                                      artifacts: [[
-                                          artifactId: pom.artifactId,
-                                          classifier: '',
-                                          file: artifactPath,
-                                          type: pom.packaging
-                                      ]]
-                                  )
-                              }
-
-                              echo '--- Artifact successfully published to Nexus Repository ---'
-                          } else {
-                              error "*** No artifact found in path: ${artifactPath}"
-                          }
-                      } catch (e) {
-                          error "Failed to upload artifact to Nexus: ${e.getMessage()}"
-                      }
-                  }
-              }
-          }
-           stage('Docker Build & Push') {
-               steps {
-                   withCredentials([usernamePassword(
-                       credentialsId: 'docker-hub-credentials',
-                       usernameVariable: 'DOCKER_USER',
-                       passwordVariable: 'DOCKER_PASSWORD'
-                   )]) {
-                       script {
-                           try {
-                               echo "--- Docker login ---"
-                               def loginCmd = """
-                                   @echo off
-                                   echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USER% --password-stdin
-                                   if %errorlevel% neq 0 (
-                                       echo ERROR: Docker login failed
-                                       exit /b 1
-                                   )
-                               """
-                               def loginStatus = bat(script: loginCmd, returnStatus: true)
-                               if (loginStatus != 0) {
-                                   error "Docker login failed"
-                               }
-
-                               def imageTag = "${env.BUILD_ID}-${BRANCH_NAME.replaceAll("'", "")}"
-                               def fullImageName = "${DOCKER_IMAGE}:${imageTag}"
-
-                               echo "--- Building Docker image: ${fullImageName} ---"
-                               try {
-                                   bat "docker build -t ${fullImageName} ."
-                               } catch (buildErr) {
-                                   error "Docker build failed: ${buildErr.getMessage()}"
-                               }
-
-                               echo "--- Pushing Docker image to Docker Hub ---"
-                               try {
-                                   bat "docker push ${fullImageName}"
-                               } catch (pushErr) {
-                                   error "Docker push failed: ${pushErr.getMessage()}"
-                               }
-
-                           } catch (err) {
-                               error "Error during Docker stage: ${err.getMessage()}"
-                           }
-                       }
-                   }
-               }
-           }
-
-
-       stage('Kubernetes Deploy') {
-            when {
-                expression { env.BRANCH_NAME == "mouad'sBranch" }
-            }
-            steps {
-                script {
-                    def imageTag = "${env.BUILD_ID}-${BRANCH_NAME.replaceAll("'", "")}"
-                    echo "--- Updating deployment.yaml with image: ${DOCKER_IMAGE}:${imageTag} ---"
-                    bat """
-                        powershell -Command "(Get-Content k8s/deployment.yaml) -replace 'image:.*', 'image: ${DOCKER_IMAGE}:${imageTag}' | Set-Content k8s/deployment.yaml"
-                    """
-                    echo "--- Applying deployment to Kubernetes ---"
-                    bat "kubectl apply -f k8s/deployment.yaml -n ${KUBE_NAMESPACE}"
-                    echo "--- Waiting for deployment rollout to finish ---"
-                    bat "kubectl rollout status deployment/employee-app -n ${KUBE_NAMESPACE}"
+        stage('Archiving') {
+            parallel {
+                stage('Nexus Upload') {
+                    steps {
+                        echo 'Upload vers Nexus (simulation)'
+                        bat 'mvn deploy'
+                    }
                 }
             }
-       }
+        }
+
+        stage('Deploiement') {
+            parallel {
+                stage("Creer l'image") {
+                    steps {
+                        script {
+                            bat 'docker build -t employee-management:latest .'
+                        }
+                    }
+                }
+                stage("Publier l'image") {
+                    steps {
+                        script {
+                            withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                                bat """
+                                    echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin
+                                    docker build -t ${DOCKER_IMAGE} .
+                                    docker push ${DOCKER_IMAGE}
+                                """
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Simulation prod') {
+            steps {
+                echo 'Simulation de l’environnement de production avec Docker'
+                bat """
+                    docker stop sim-employee || echo 'Pas de conteneur existant'
+                    docker rm sim-employee || echo 'Pas de conteneur à supprimer'
+                    docker pull ${DOCKER_IMAGE}
+                    docker run -d -p 8080:8080 --name sim-employee ${DOCKER_IMAGE}
+                """
+            }
+        }
     }
 
     post {
         always {
-            deleteDir()
-            script {
-                echo "Pipeline finished with status: ${currentBuild.currentResult}"
-            }
+            echo 'Pipeline terminé'
         }
-        failure {
+
+        success {
+            echo '🎉 Build terminé avec succès !'
             emailext (
-                subject: "FAILED: Job '${env.JOB_NAME}' (${env.BUILD_NUMBER})",
-                body: """<p>Pipeline failed for branch ${BRANCH_NAME}</p>
-                         <p>Check build details at: <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
-                         <p>Error: ${currentBuild.currentResult}</p>""",
-                to: 'mouadbouanani1@gmail.com',
-                mimeType: 'text/html'
+                subject: "✅ Build réussi - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: "Le pipeline Jenkins a réussi !\nVoir le build ici : ${env.BUILD_URL}",
+                to: 'tahamoum68@gmail.com, mouadbouanani1@gmail.com',
+                recipientProviders: [[$class: 'DevelopersRecipientProvider']]
+            )
+        }
+
+        failure {
+            echo '💥 Le build a échoué.'
+            emailext (
+                subject: "💥 Échec du build - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """
+                    <p><strong>Le pipeline Jenkins a échoué.</strong></p>
+                    <p>Voir les logs ici : <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
+                """,
+                mimeType: 'text/html',
+                to: 'tahamoum68@gmail.com, mouadbouanani1@gmail.com',
+                recipientProviders: [[$class: 'DevelopersRecipientProvider']]
             )
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+// pipeline {
+//     agent any
+//
+//     environment {
+//         DOCKER_IMAGE = "employee-app"
+//         KUBE_NAMESPACE = "default"
+//         BRANCH_NAME = "mouad'sBranch"
+//     }
+//      triggers {
+//          githubPush()
+//      }
+//
+//     stages {
+//         stage('SCM Checkout') {
+//             steps {
+//                 echo '--- Checking out source code from Git ---'
+//                 git url: 'https://github.com/Mouadbouanani/Employee-Management-System.git',
+//                     branch: "${BRANCH_NAME}"
+//             }
+//         }
+//
+//         stage('Build') {
+//             parallel {
+//                 stage('Build with Maven') {
+//                     steps {
+//                         echo '--- Running Maven compile ---'
+//                         bat 'mvn clean compile'
+//                     }
+//                 }
+//                 stage('Build with Gradle (placeholder)') {
+//                     steps {
+//                         echo '--- Skipping Gradle build step ---'
+//                     }
+//                 }
+//             }
+//         }
+//
+//         stage('Tests') {
+//             parallel {
+//                 stage('JUnit Tests') {
+//                     steps {
+//                         echo '--- Running unit tests ---'
+//                         bat 'mvn test'
+//                         junit 'target/surefire-reports/**/*.xml'
+//                     }
+//                 }
+//                 stage('Performance Testing (placeholder)') {
+//                     steps {
+//                         echo '--- Performance tests not yet implemented ---'
+//                     }
+//                 }
+//                 stage('Functional Testing (placeholder)') {
+//                     steps {
+//                         echo '--- Functional tests not yet implemented ---'
+//                     }
+//                 }
+//             }
+//         }
+//
+//         stage('Code Analysis') {
+//             parallel {
+//                 stage('Checkstyle') {
+//                     steps {
+//                         echo '--- Running Checkstyle ---'
+//                         bat 'mvn checkstyle:checkstyle'
+//                     }
+//                 }
+//                 stage('PMD') {
+//                     steps {
+//                         echo '--- Running PMD ---'
+//                         bat 'mvn pmd:pmd'
+//                     }
+//                 }
+//                 stage('FindBugs / SpotBugs') {
+//                     steps {
+//                         echo '--- Running SpotBugs ---'
+//                         bat 'mvn spotbugs:spotbugs'
+//                     }
+//                 }
+//             }
+//         }
+//
+//         stage('JavaDoc') {
+//             steps {
+//                 echo '--- Generating JavaDoc ---'
+//                 bat 'mvn javadoc:javadoc'
+//                 archiveArtifacts artifacts: 'target/site/apidocs/**', allowEmptyArchive: true
+//             }
+//         }
+//
+//         stage('Package') {
+//             steps {
+//                 echo '--- Packaging application (JAR) ---'
+//                 bat 'mvn package -DskipTests'
+//                 archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+//             }
+//         }
+//
+//           stage('Archiving to Nexus') {
+//               steps {
+//                   script {
+//                       try {
+//                           echo '--- Publishing artifacts to Nexus Repository ---'
+//
+//                           // Read POM information
+//                           pom = readMavenPom file: 'pom.xml'
+//
+//                           // Find the built artifact
+//                           filesByGlob = findFiles(glob: "target/*.${pom.packaging}")
+//                           artifactPath = filesByGlob[0].path
+//
+//                           if (fileExists(artifactPath)) {
+//                               echo "*** Artifact: ${artifactPath}, group: ${pom.groupId}, packaging: ${pom.packaging}, version: ${pom.version}"
+//
+//                               def repoType = pom.version.endsWith('-SNAPSHOT') ? 'snapshots' : 'releases'
+//
+//                               withCredentials([usernamePassword(
+//                                   credentialsId: 'nexus-credentials',
+//                                   usernameVariable: 'NEXUS_USER',
+//                                   passwordVariable: 'NEXUS_PASS'
+//                               )]) {
+//                                   nexusArtifactUploader(
+//                                       nexusVersion: 'nexus3',
+//                                       protocol: 'http',
+//                                       nexusUrl: "localhost:8081",
+//                                       groupId: pom.groupId,
+//                                       version: pom.version,
+//                                       repository: "maven-${repoType}",
+//                                       credentialsId: 'nexus-credentials',
+//                                       artifacts: [[
+//                                           artifactId: pom.artifactId,
+//                                           classifier: '',
+//                                           file: artifactPath,
+//                                           type: pom.packaging
+//                                       ]]
+//                                   )
+//                               }
+//
+//                               echo '--- Artifact successfully published to Nexus Repository ---'
+//                           } else {
+//                               error "*** No artifact found in path: ${artifactPath}"
+//                           }
+//                       } catch (e) {
+//                           error "Failed to upload artifact to Nexus: ${e.getMessage()}"
+//                       }
+//                   }
+//               }
+//           }
+//            stage('Docker Build & Push') {
+//                steps {
+//                    withCredentials([usernamePassword(
+//                        credentialsId: 'docker-hub-credentials',
+//                        usernameVariable: 'DOCKER_USER',
+//                        passwordVariable: 'DOCKER_PASSWORD'
+//                    )]) {
+//                        script {
+//                            try {
+//                                echo "--- Docker login ---"
+//                                def loginCmd = """
+//                                    @echo off
+//                                    echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USER% --password-stdin
+//                                    if %errorlevel% neq 0 (
+//                                        echo ERROR: Docker login failed
+//                                        exit /b 1
+//                                    )
+//                                """
+//                                def loginStatus = bat(script: loginCmd, returnStatus: true)
+//                                if (loginStatus != 0) {
+//                                    error "Docker login failed"
+//                                }
+//
+//                                def imageTag = "${env.BUILD_ID}-${BRANCH_NAME.replaceAll("'", "")}"
+//                                def fullImageName = "${DOCKER_IMAGE}:${imageTag}"
+//
+//                                echo "--- Building Docker image: ${fullImageName} ---"
+//                                try {
+//                                    bat "docker build -t ${fullImageName} ."
+//                                } catch (buildErr) {
+//                                    error "Docker build failed: ${buildErr.getMessage()}"
+//                                }
+//
+//                                echo "--- Pushing Docker image to Docker Hub ---"
+//                                try {
+//                                    bat "docker push ${fullImageName}"
+//                                } catch (pushErr) {
+//                                    error "Docker push failed: ${pushErr.getMessage()}"
+//                                }
+//
+//                            } catch (err) {
+//                                error "Error during Docker stage: ${err.getMessage()}"
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//
+//
+//        stage('Kubernetes Deploy') {
+//             when {
+//                 expression { env.BRANCH_NAME == "mouad'sBranch" }
+//             }
+//             steps {
+//                 script {
+//                     def imageTag = "${env.BUILD_ID}-${BRANCH_NAME.replaceAll("'", "")}"
+//                     echo "--- Updating deployment.yaml with image: ${DOCKER_IMAGE}:${imageTag} ---"
+//                     bat """
+//                         powershell -Command "(Get-Content k8s/deployment.yaml) -replace 'image:.*', 'image: ${DOCKER_IMAGE}:${imageTag}' | Set-Content k8s/deployment.yaml"
+//                     """
+//                     echo "--- Applying deployment to Kubernetes ---"
+//                     bat "kubectl apply -f k8s/deployment.yaml -n ${KUBE_NAMESPACE}"
+//                     echo "--- Waiting for deployment rollout to finish ---"
+//                     bat "kubectl rollout status deployment/employee-app -n ${KUBE_NAMESPACE}"
+//                 }
+//             }
+//        }
+//     }
+//
+//     post {
+//         always {
+//             deleteDir()
+//             script {
+//                 echo "Pipeline finished with status: ${currentBuild.currentResult}"
+//             }
+//         }
+//         failure {
+//             emailext (
+//                 subject: "FAILED: Job '${env.JOB_NAME}' (${env.BUILD_NUMBER})",
+//                 body: """<p>Pipeline failed for branch ${BRANCH_NAME}</p>
+//                          <p>Check build details at: <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
+//                          <p>Error: ${currentBuild.currentResult}</p>""",
+//                 to: 'mouadbouanani1@gmail.com',
+//                 mimeType: 'text/html'
+//             )
+//         }
+//     }
+// }
