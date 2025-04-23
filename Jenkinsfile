@@ -111,14 +111,14 @@ pipeline {
 
         stage('Déploiement') {
             parallel {
-                stage("Publication de l'image 1") {
+                stage("Créer l'image") {
                     steps {
                         script {
-                            bat 'mvn clean package'
+                            bat 'docker build -t employee-management:latest .'
                         }
                     }
                 }
-                stage("Publication de l'image 2") {
+                stage("Publier l'image") {
                     steps {
                         script {
                             withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
