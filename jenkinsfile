@@ -6,9 +6,9 @@ pipeline {
         KUBE_NAMESPACE = "default"
         BRANCH_NAME = "mouad'sBranch"
     }
- triggers {
-     githubPush()
- }
+     triggers {
+         githubPush()
+     }
 
     stages {
         stage('SCM Checkout') {
@@ -96,90 +96,96 @@ pipeline {
             }
         }
 
-      stage('Archiving to Nexus') {
-          steps {
-              script {
-                  echo '--- Publishing artifacts to Nexus Repository ---'
+          stage('Archiving to Nexus') {
+              steps {
+                  script {
+                      try {
+                          echo '--- Publishing artifacts to Nexus Repository ---'
 
-                  // Read POM information
-                  pom = readMavenPom file: 'pom.xml'
+                          // Read POM information
+                          pom = readMavenPom file: 'pom.xml'
 
-                  // Find the built artifact
-                  filesByGlob = findFiles(glob: "target/*.${pom.packaging}")
-                  artifactPath = filesByGlob[0].path
+                          // Find the built artifact
+                          filesByGlob = findFiles(glob: "target/*.${pom.packaging}")
+                          artifactPath = filesByGlob[0].path
 
-                  if(fileExists(artifactPath)) {
-                      echo "*** Artifact: ${artifactPath}, group: ${pom.groupId}, packaging: ${pom.packaging}, version: ${pom.version}"
+                          if (fileExists(artifactPath)) {
+                              echo "*** Artifact: ${artifactPath}, group: ${pom.groupId}, packaging: ${pom.packaging}, version: ${pom.version}"
 
-                      // Determine repository based on version
-                      def isSnapshot = pom.version.endsWith('-SNAPSHOT')
-                      def repoType = isSnapshot ? 'snapshots' : 'releases'
-                      def credsId = isSnapshot ? 'nexus-snapshots' : 'nexus-releases'
+                              def repoType = pom.version.endsWith('-SNAPSHOT') ? 'snapshots' : 'releases'
 
-                      nexusArtifactUploader(
-                          nexusVersion: 'nexus3',
-                          protocol: 'http',
-                          nexusUrl: "localhost:8081", // Remove http:// prefix
-                          groupId: pom.groupId,
-                          version: pom.version,
-                          repository: "maven-${repoType}",
-                          credentialsId: credsId,
-                          artifacts: [
-                              [artifactId: pom.artifactId,
-                               classifier: '',
-                               file: artifactPath,
-                               type: pom.packaging]
-                          ]
-                      )
+                              withCredentials([usernamePassword(
+                                  credentialsId: 'nexus-credentials',
+                                  usernameVariable: 'NEXUS_USER',
+                                  passwordVariable: 'NEXUS_PASS'
+                              )]) {
+                                  nexusArtifactUploader(
+                                      nexusVersion: 'nexus3',
+                                      protocol: 'http',
+                                      nexusUrl: "localhost:8081",
+                                      groupId: pom.groupId,
+                                      version: pom.version,
+                                      repository: "maven-${repoType}",
+                                      credentialsId: 'nexus-credentials',
+                                      artifacts: [[
+                                          artifactId: pom.artifactId,
+                                          classifier: '',
+                                          file: artifactPath,
+                                          type: pom.packaging
+                                      ]]
+                                  )
+                              }
 
-                      echo '--- Artifact successfully published to Nexus Repository ---'
-                  } else {
-                      error "*** No artifact found in path: ${artifactPath}"
+                              echo '--- Artifact successfully published to Nexus Repository ---'
+                          } else {
+                              error "*** No artifact found in path: ${artifactPath}"
+                          }
+                      } catch (e) {
+                          error "Failed to upload artifact to Nexus: ${e.getMessage()}"
+                      }
                   }
               }
           }
-      }
+           stage('Docker Build & Push') {
+               steps {
+                   withCredentials([usernamePassword(
+                       credentialsId: 'docker-hub-credentials',
+                       passwordVariable: 'DOCKER_PASSWORD',
+                       usernameVariable: 'DOCKER_USER'
+                   )]) {
+                       script {
+                           def imageTag = "${env.BUILD_ID}-${BRANCH_NAME.replaceAll("'", "")}"
+                           def fullImageName = "${DOCKER_IMAGE}:${imageTag}"
 
-       stage('Docker Build & Push') {
-           steps {
-               withCredentials([usernamePassword(
-                   credentialsId: 'docker-hub-credentials',
-                   passwordVariable: 'DOCKER_PASSWORD',
-                   usernameVariable: 'DOCKER_USER'
-               )]) {
-                   script {
-                       def imageTag = "${env.BUILD_ID}-${BRANCH_NAME.replaceAll("'", "")}"
-                       def fullImageName = "${DOCKER_USER}/${DOCKER_IMAGE}:${imageTag}"
+                           echo "--- Building Docker image: ${fullImageName} ---"
+                           bat "docker build -t ${fullImageName} ."
 
-                       echo "--- Building Docker image: ${fullImageName} ---"
-                       bat "docker build -t ${fullImageName} ."
+                           // Improved login command with error handling
+                           echo "--- Logging in to Docker Hub ---"
+                           def loginCmd = """
+                               @echo off
+                               echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USER% --password-stdin
+                               if %errorlevel% neq 0 (
+                                   echo ERROR: Docker login failed
+                                   exit /b 1
+                               )
+                           """
+                           def loginStatus = bat(script: loginCmd, returnStatus: true)
 
-                       // Improved login command with error handling
-                       echo "--- Logging in to Docker Hub ---"
-                       def loginCmd = """
-                           @echo off
-                           echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USER% --password-stdin
-                           if %errorlevel% neq 0 (
-                               echo ERROR: Docker login failed
-                               exit /b 1
-                           )
-                       """
-                       def loginStatus = bat(script: loginCmd, returnStatus: true)
+                           if (loginStatus != 0) {
+                               error "Docker login failed with status ${loginStatus}"
+                           } else {
+                               echo "--- Pushing Docker image ---"
+                               bat "docker push ${fullImageName}"
 
-                       if (loginStatus != 0) {
-                           error "Docker login failed with status ${loginStatus}"
-                       } else {
-                           echo "--- Pushing Docker image ---"
-                           bat "docker push ${fullImageName}"
-
-                           // Tag and push latest
-                           bat "docker tag ${fullImageName} ${DOCKER_USER}/${DOCKER_IMAGE}:latest"
-                           bat "docker push ${DOCKER_USER}/${DOCKER_IMAGE}:latest"
+                               // Tag and push latest
+                               bat "docker tag ${fullImageName} ${DOCKER_USER}/${DOCKER_IMAGE}:latest"
+                               bat "docker push ${DOCKER_USER}/${DOCKER_IMAGE}:latest"
+                           }
                        }
                    }
                }
            }
-       }
 
        stage('Kubernetes Deploy') {
             when {
