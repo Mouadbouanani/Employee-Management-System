@@ -124,7 +124,7 @@ pipeline {
                             withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                                 bat """
                                     echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin
-                                    docker build -t ${DOCKER_IMAGE} .
+                                    docker build -t ${DOCKER_IMAGE} . 
                                     docker push ${DOCKER_IMAGE}
                                 """
                             }
@@ -139,11 +139,27 @@ pipeline {
         always {
             echo 'Pipeline terminé'
         }
+
         success {
             echo '🎉 Build terminé avec succès !'
+            emailext (
+                subject: "✅ Build réussi - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: "Le pipeline Jenkins a réussi !\nVoir le build ici : ${env.BUILD_URL}",
+                to: 'tahamoum68@gmail.com','mouadbouanani1@gmail.com'
+            )
         }
+
         failure {
             echo '💥 Le build a échoué.'
+            emailext (
+                subject: "💥 Échec du build - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """
+                    <p><strong>Le pipeline Jenkins a échoué.</strong></p>
+                    <p>Voir les logs ici : <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
+                """,
+                to: 'tahamoum68@gmail.com','mouadbouanani1@gmail.com'
+                mimeType: 'text/html'
+            )
         }
     }
 }
