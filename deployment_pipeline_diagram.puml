@@ -1,0 +1,123 @@
+@startuml Employee Management System - Deployment Pipeline
+
+' Style definitions
+skinparam rectangle {
+    BackgroundColor<<CI>> LightBlue
+    BackgroundColor<<Build>> LightGreen
+    BackgroundColor<<Test>> LightYellow
+    BackgroundColor<<Deploy>> LightPink
+}
+
+' Development Environment
+node "Development Environment" {
+    rectangle "Local IDE" {
+        [Git Client]
+        [Maven Local]
+    }
+}
+
+' Source Control
+node "GitHub" {
+    rectangle "Source Repository" {
+        [Git Repository]
+        [Webhook Trigger]
+    }
+}
+
+' Jenkins CI/CD Environment
+node "Jenkins CI/CD Server" <<CI>> {
+    rectangle "Jenkins Pipeline" {
+        [SCM Checkout] <<Build>>
+        
+        rectangle "Build & Test" <<Build>> {
+            [Maven Build]
+            [Gradle Build]
+            [Unit Tests]
+            [Performance Tests]
+            [Functional Tests]
+        }
+        
+        rectangle "Code Quality" <<Test>> {
+            [Checkstyle]
+            [PMD]
+            [SpotBugs]
+            [JavaDoc]
+        }
+        
+        [Package JAR] <<Build>>
+    }
+}
+
+' Artifact Repository
+node "Nexus Repository" {
+    database "Maven Repository" {
+        [Snapshots]
+        [Releases]
+    }
+}
+
+' Docker Environment
+node "Docker Environment" {
+    rectangle "Docker Registry" {
+        [Docker Hub]
+    }
+    [Docker Build]
+}
+
+' Kubernetes Cluster
+node "Kubernetes Cluster" {
+    rectangle "Namespaces" {
+        rectangle "Default Namespace" {
+            [Employee App Pod]
+            [MySQL Pod]
+        }
+    }
+}
+
+' Relationships
+[Git Client] --> [Git Repository] : "Push code"
+[Git Repository] --> [Webhook Trigger] : "Trigger"
+[Webhook Trigger] --> [SCM Checkout] : "Start build"
+
+[SCM Checkout] --> [Maven Build] : "Trigger build"
+[Maven Build] --> [Unit Tests] : "Run tests"
+[Maven Build] --> [Checkstyle] : "Analyze code"
+[Maven Build] --> [PMD] : "Check quality"
+[Maven Build] --> [SpotBugs] : "Find bugs"
+
+[Package JAR] --> [Snapshots] : "Deploy SNAPSHOT"
+[Package JAR] --> [Releases] : "Deploy Release"
+
+[Package JAR] --> [Docker Build] : "Build image"
+[Docker Build] --> [Docker Hub] : "Push image"
+
+[Docker Hub] --> [Employee App Pod] : "Pull & Deploy"
+[Employee App Pod] --> [MySQL Pod] : "Connect"
+
+' Notes
+note right of [Git Repository]
+  Branches:
+  - main
+  - develop
+  - feature/*
+end note
+
+note right of [Jenkins Pipeline]
+  Pipeline Stages:
+  1. SCM Checkout
+  2. Build
+  3. Tests
+  4. Code Analysis
+  5. Package
+  6. Docker Build
+  7. Deploy
+end note
+
+note right of [Kubernetes Cluster]
+  Deployment:
+  - Replicas: 3
+  - Rolling updates
+  - Health checks
+end note
+
+@enduml 
