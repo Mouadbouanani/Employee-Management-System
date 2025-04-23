@@ -9,7 +9,7 @@ pipeline {
     environment {
         JAVA_HOME = "${tool 'JDK'}"
         PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-        DOCKER_IMAGE = 'mouadbouanani/employee-management:latest'
+        DOCKER_IMAGE = 'tahamoumni68/employee-management:latest'
     }
 
     stages {
