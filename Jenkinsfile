@@ -157,7 +157,7 @@ pipeline {
                     <p><strong>Le pipeline Jenkins a échoué.</strong></p>
                     <p>Voir les logs ici : <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
                 """,
-                to: 'tahamoum68@gmail.com','mouadbouanani1@gmail.com'
+                to: 'tahamoum68@gmail.com, mouadbouanani1@gmail.com',
                 mimeType: 'text/html'
             )
         }
