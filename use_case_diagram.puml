@@ -1,0 +1,74 @@
+ @startuml Employee Management System - Class Diagram
+
+' Classes principales
+class Employee {
+  -id: Long
+  -firstName: String
+  -lastName: String
+  -email: String
+  -password: String
+  -phoneNumber: String
+  -hireDate: LocalDate
+  -position: String
+  -department: String
+  -salary: BigDecimal
+  -roles: Set<Role>
+  +addRole(role: Role): void
+}
+
+class Role {
+  -id: Long
+  -name: String
+  +Role(name: String)
+}
+
+class SecurityUser {
+  -employee: Employee
+  +getAuthorities(): Collection<? extends GrantedAuthority>
+  +getPassword(): String
+  +getUsername(): String
+  +isAccountNonExpired(): boolean
+  +isAccountNonLocked(): boolean
+  +isCredentialsNonExpired(): boolean
+  +isEnabled(): boolean
+  +getId(): Long
+  +getFullName(): String
+}
+
+' Interfaces et Services
+interface EmployeeService {
+  +getAllEmployees(): List<Employee>
+  +getEmployeesPage(pageable: Pageable): Page<Employee>
+  +searchEmployees(keyword: String, pageable: Pageable): Page<Employee>
+  +getEmployeeById(id: Long): Optional<Employee>
+  +getEmployeeByEmail(email: String): Optional<Employee>
+  +saveEmployee(employee: Employee): Employee
+  +deleteEmployee(id: Long): void
+  +existsByEmail(email: String): boolean
+}
+
+class EmployeeController {
+  -employeeService: EmployeeService
+  +listEmployees(keyword: String, page: int, size: int, sortField: String, sortDir: String, model: Model): String
+  +viewEmployee(id: Long, model: Model, redirectAttributes: RedirectAttributes): String
+  +showAddForm(model: Model): String
+  +addEmployee(employee: Employee, result: BindingResult, redirectAttributes: RedirectAttributes): String
+  +showEditForm(id: Long, model: Model, redirectAttributes: RedirectAttributes): String
+  +updateEmployee(id: Long, employee: Employee, result: BindingResult, redirectAttributes: RedirectAttributes): String
+  +deleteEmployee(id: Long, redirectAttributes: RedirectAttributes): String
+}
+
+interface EmployeeRepository {
+  +findByEmail(email: String): Optional<Employee>
+  +existsByEmail(email: String): boolean
+  +searchEmployees(keyword: String, pageable: Pageable): Page<Employee>
+}
+
+' Relations
+Employee "0..*" -- "0..*" Role
+SecurityUser --> Employee
+EmployeeController --> EmployeeService
+EmployeeService ..> EmployeeRepository
+EmployeeRepository ..> Employee
+
+@enduml

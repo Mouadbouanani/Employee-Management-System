@@ -1,0 +1,86 @@
+@startuml Employee Management System - Sequence Diagram
+
+' Acteurs
+actor User
+participant "Login Page" as Login
+participant "EmployeeController" as Controller
+participant "EmployeeService" as Service
+participant "EmployeeRepository" as Repository
+participant "SecurityConfig" as Security
+database "MySQL Database" as DB
+
+' Séquence d'authentification
+== Authentication ==
+User -> Login: Enter credentials
+Login -> Security: Validate credentials
+Security -> Repository: findByEmail(email)
+Repository -> DB: SELECT * FROM employees WHERE email = ?
+DB --> Repository: Employee data
+Repository --> Security: Employee object
+Security --> Login: Authentication result
+Login --> User: Redirect to dashboard
+
+' Séquence de création d'employé
+== Create Employee ==
+User -> Controller: POST /employees/add
+Controller -> Service: saveEmployee(employee)
+Service -> Repository: existsByEmail(email)
+Repository -> DB: SELECT COUNT(*) FROM employees WHERE email = ?
+DB --> Repository: Count result
+Repository --> Service: Boolean
+alt Email exists
+    Service --> Controller: Error - Email exists
+    Controller --> User: Show error message
+else Email doesn't exist
+    Service -> Repository: save(employee)
+    Repository -> DB: INSERT INTO employees
+    DB --> Repository: New employee ID
+    Repository --> Service: Saved employee
+    Service --> Controller: Success
+    Controller --> User: Redirect to employee list
+end
+
+' Séquence de recherche d'employés
+== Search Employees ==
+User -> Controller: GET /employees?keyword=search
+Controller -> Service: searchEmployees(keyword, pageable)
+Service -> Repository: searchEmployees(keyword, pageable)
+Repository -> DB: SELECT * FROM employees WHERE ... LIKE ?
+DB --> Repository: Page of employees
+Repository --> Service: Page<Employee>
+Service --> Controller: Page<Employee>
+Controller --> User: Display results
+
+' Séquence de mise à jour d'employé
+== Update Employee ==
+User -> Controller: POST /employees/edit/{id}
+Controller -> Service: getEmployeeById(id)
+Service -> Repository: findById(id)
+Repository -> DB: SELECT * FROM employees WHERE id = ?
+DB --> Repository: Employee data
+Repository --> Service: Optional<Employee>
+Service --> Controller: Employee
+alt Employee exists
+    Controller -> Service: saveEmployee(updatedEmployee)
+    Service -> Repository: save(employee)
+    Repository -> DB: UPDATE employees SET ...
+    DB --> Repository: Updated employee
+    Repository --> Service: Updated employee
+    Service --> Controller: Success
+    Controller --> User: Redirect to employee list
+else Employee not found
+    Controller --> User: Show error message
+end
+
+' Séquence de suppression d'employé
+== Delete Employee ==
+User -> Controller: GET /employees/delete/{id}
+Controller -> Service: deleteEmployee(id)
+Service -> Repository: deleteById(id)
+Repository -> DB: DELETE FROM employees WHERE id = ?
+DB --> Repository: Delete confirmation
+Repository --> Service: Void
+Service --> Controller: Success
+Controller --> User: Redirect to employee list
+
+@enduml 
