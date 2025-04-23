@@ -109,16 +109,16 @@ pipeline {
             }
         }
 
-
         stage('Déploiement') {
             parallel {
-                stage("Publication de l'image")
+                stage("Publication de l'image 1") {
                     steps {
                         script {
-                        bat 'mvn clean package'
+                            bat 'mvn clean package'
                         }
                     }
-                stage("Publication de l'image")
+                }
+                stage("Publication de l'image 2") {
                     steps {
                         script {
                             withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
@@ -128,7 +128,6 @@ pipeline {
                                     docker push ${DOCKER_IMAGE}
                                 """
                             }
-
                         }
                     }
                 }
