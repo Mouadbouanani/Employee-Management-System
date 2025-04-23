@@ -145,7 +145,7 @@ pipeline {
             emailext (
                 subject: "✅ Build réussi - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                 body: "Le pipeline Jenkins a réussi !\nVoir le build ici : ${env.BUILD_URL}",
-                to: 'tahamoum68@gmail.com','mouadbouanani1@gmail.com'
+                to: 'tahamoum68@gmail.com, mouadbouanani1@gmail.com'
             )
         }
 
