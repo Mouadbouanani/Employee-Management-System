@@ -109,9 +109,9 @@ pipeline {
             }
         }
 
-        stage('Déploiement') {
+        stage('Deploiement') {
             parallel {
-                stage("Créer l'image") {
+                stage("Creer l'image") {
                     steps {
                         script {
                             bat 'docker build -t employee-management:latest .'
