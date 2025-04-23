@@ -133,6 +133,18 @@ pipeline {
                 }
             }
         }
+
+        stage('Simulation prod') {
+            steps {
+                echo 'Simulation de l’environnement de production avec Docker'
+                bat """
+                    docker stop sim-employee || echo 'Pas de conteneur existant'
+                    docker rm sim-employee || echo 'Pas de conteneur à supprimer'
+                    docker pull ${DOCKER_IMAGE}
+                    docker run -d -p 8080:8080 --name sim-employee ${DOCKER_IMAGE}
+                """
+            }
+        }
     }
 
     post {
