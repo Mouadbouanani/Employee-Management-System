@@ -111,16 +111,26 @@ pipeline {
 
 
         stage('Déploiement') {
-            steps {
-                script {
-                    withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        bat """
-                            echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin
-                            docker build -t ${DOCKER_IMAGE} .
-                            docker push ${DOCKER_IMAGE}
-                        """
+            parallel {
+                stage("Publication de l'image")
+                    steps {
+                        script {
+                        bat 'mvn clean package'
+                        }
                     }
+                stage("Publication de l'image")
+                    steps {
+                        script {
+                            withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                                bat """
+                                    echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin
+                                    docker build -t ${DOCKER_IMAGE} .
+                                    docker push ${DOCKER_IMAGE}
+                                """
+                            }
 
+                        }
+                    }
                 }
             }
         }
