@@ -148,44 +148,26 @@ pipeline {
           }
            stage('Docker Build & Push') {
                steps {
-                   withCredentials([usernamePassword(
-                       credentialsId: 'docker-hub-credentials',
-                       usernameVariable: 'DOCKER_USER',
-                       passwordVariable: 'DOCKER_PASSWORD'
-                   )]) {
-                       script {
+                   script {
+                       withCredentials([usernamePassword(
+                           credentialsId: 'docker-hub-credentials',
+                           usernameVariable: 'DOCKER_USERNAME',
+                           passwordVariable: 'DOCKER_PASSWORD'
+                       )]) {
                            try {
-                               echo "--- Docker login ---"
-                               def loginCmd = """
-                                   @echo off
-                                   echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USER% --password-stdin
-                                   if %errorlevel% neq 0 (
-                                       echo ERROR: Docker login failed
-                                       exit /b 1
-                                   )
+                               // Login to Docker Hub
+                               sh """
+                                   docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD}
                                """
-                               def loginStatus = bat(script: loginCmd, returnStatus: true)
-                               if (loginStatus != 0) {
-                                   error "Docker login failed"
-                               }
-
+                               
+                               // Build and tag the image
                                def imageTag = "${env.BUILD_ID}-${BRANCH_NAME.replaceAll("'", "")}"
                                def fullImageName = "${DOCKER_IMAGE}:${imageTag}"
-
-                               echo "--- Building Docker image: ${fullImageName} ---"
-                               try {
-                                   bat "docker build -t ${fullImageName} ."
-                               } catch (buildErr) {
-                                   error "Docker build failed: ${buildErr.getMessage()}"
-                               }
-
-                               echo "--- Pushing Docker image to Docker Hub ---"
-                               try {
-                                   bat "docker push ${fullImageName}"
-                               } catch (pushErr) {
-                                   error "Docker push failed: ${pushErr.getMessage()}"
-                               }
-
+                               
+                               sh """
+                                   docker build -t ${fullImageName} .
+                                   docker push ${fullImageName}
+                               """
                            } catch (err) {
                                error "Error during Docker stage: ${err.getMessage()}"
                            }
@@ -229,7 +211,9 @@ pipeline {
                          <p>Check build details at: <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
                          <p>Error: ${currentBuild.currentResult}</p>""",
                 to: 'mouadbouanani1@gmail.com',
-                mimeType: 'text/html'
+                mimeType: 'text/html',
+                replyTo: 'jenkins@yourcompany.com',
+                recipientProviders: [[$class: 'DevelopersRecipientProvider']]
             )
         }
     }
