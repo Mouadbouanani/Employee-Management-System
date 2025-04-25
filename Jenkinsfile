@@ -154,22 +154,22 @@ pipeline {
 
         success {
             echo '🎉 Build terminé avec succès !'
-            mail to: 'tahamoum68@gmail.com',
-             subject: 'Test Mail Simple',
-             body: 'Ce message est envoyé depuis Jenkins.'
+            mail to: 'tahamoum68@gmail.com, mouadbouanani1@gmail.com',
+             subject: 'Build réussi - ${env.JOB_NAME} #${env.BUILD_NUMBER}',
+             body: 'Le pipeline Jenkins a réussi !\nVoir le build ici : ${env.BUILD_URL}.'
         }
 
         failure {
             echo '💥 Le build a échoué.'
-            emailext (
-                subject: "💥 Échec du build - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """
+            
+            mail to: 'tahamoum68@gmail.com, mouadbouanani1@gmail.com'',
+             subject: '💥 Échec du build - ${env.JOB_NAME} #${env.BUILD_NUMBER}',
+             body:  """
                     <p><strong>Le pipeline Jenkins a échoué.</strong></p>
                     <p>Voir les logs ici : <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
                 """,
-                mimeType: 'text/html',
-                to: 'tahamoum68@gmail.com, mouadbouanani1@gmail.com',
-                recipientProviders: [[$class: 'DevelopersRecipientProvider']]
+            mimeType:'text/html    ',
+            
             )
         }
     }
