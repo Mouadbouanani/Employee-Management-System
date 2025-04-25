@@ -155,19 +155,32 @@ pipeline {
                            passwordVariable: 'DOCKER_PASSWORD'
                        )]) {
                            try {
-                               // Login to Docker Hub
-                               sh """
-                                   docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD}
-                               """
-                               
-                               // Build and tag the image
+                               // Login to Docker Hub (Windows version)
+                               bat "echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USERNAME% --password-stdin"
+
+                               // Define image details
                                def imageTag = "${env.BUILD_ID}-${BRANCH_NAME.replaceAll("'", "")}"
                                def fullImageName = "${DOCKER_IMAGE}:${imageTag}"
-                               
-                               sh """
-                                   docker build -t ${fullImageName} .
-                                   docker push ${fullImageName}
-                               """
+
+                               // Check if image already exists
+                               def imageExists = false
+                               try {
+                                   def checkResult = bat(script: "docker image inspect ${fullImageName}", returnStatus: true)
+                                   imageExists = (checkResult == 0)
+                               } catch (Exception e) {
+                                   echo "Error checking for existing image: ${e.getMessage()}"
+                                   imageExists = false
+                               }
+
+                               if (imageExists) {
+                                   echo "Image ${fullImageName} already exists, skipping build"
+                               } else {
+                                   echo "Image ${fullImageName} not found, building new image"
+                                   bat "docker build -t ${fullImageName} ."
+                               }
+
+                               // Push the image (whether it was just built or already existed)
+                               bat "docker push ${fullImageName}"
                            } catch (err) {
                                error "Error during Docker stage: ${err.getMessage()}"
                            }
@@ -175,7 +188,6 @@ pipeline {
                    }
                }
            }
-
 
        stage('Kubernetes Deploy') {
             when {
